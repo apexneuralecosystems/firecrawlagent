@@ -1,31 +1,31 @@
-FIRECRAWL_API_KEY=your_firecrawl_api_key_here
-OPENROUTER_API_KEY=your_openrouter_api_key_here
-# Optional: Override default LLM model (default: openrouter/google/gemini-2.0-flash-exp:free)
-# Alternative free models:
-# - openrouter/meta-llama/llama-3.2-3b-instruct:free
-# - openrouter/google/gemini-flash-1.5:free
-# - openrouter/mistralai/mistral-7b-instruct:free
-LLM_MODEL=openrouter/google/gemini-2.0-flash-exp:free
+# FIRECRAWL_API_KEY=your_firecrawl_api_key_here
+# OPENROUTER_API_KEY=your_openrouter_api_key_here
+# # Optional: Override default LLM model (default: openrouter/google/gemini-2.0-flash-exp:free)
+# # Alternative free models:
+# # - openrouter/meta-llama/llama-3.2-3b-instruct:free
+# # - openrouter/google/gemini-flash-1.5:free
+# # - openrouter/mistralai/mistral-7b-instruct:free
+# LLM_MODEL=openrouter/google/gemini-2.0-flash-exp:free
 
-# Frontend URLs (required for password reset and payment redirects)
-FRONTEND_BASE_URL=http://localhost:3000
-FRONTEND_RESET_URL=http://localhost:3000/reset-password
+# # Frontend URLs (required for password reset and payment redirects)
+# FRONTEND_BASE_URL=http://localhost:3000
+# FRONTEND_RESET_URL=http://localhost:3000/reset-password
 
-# SendGrid Email Configuration (for password reset emails)
-# Get your API key from: https://app.sendgrid.com/settings/api_keys
-# Create a new API key with "Mail Send" permissions
-SEND_GRID_API=your_sendgrid_api_key_here
-FROM_EMAIL=noreply@yourdomain.com
-FROM_NAME=Firecrawl Agent
+# # SendGrid Email Configuration (for password reset emails)
+# # Get your API key from: https://app.sendgrid.com/settings/api_keys
+# # Create a new API key with "Mail Send" permissions
+# SEND_GRID_API=your_sendgrid_api_key_here
+# FROM_EMAIL=noreply@yourdomain.com
+# FROM_NAME=Firecrawl Agent
 
-# PayPal Configuration (for payment functionality)
-# Get your credentials from: https://developer.paypal.com/
-# For sandbox testing, use sandbox credentials
-# For production, use live credentials
-PAYPAL_CLIENT_ID=your_paypal_client_id_here
-PAYPAL_CLIENT_SECRET=your_paypal_client_secret_here
-PAYPAL_MODE=sandbox
-# Optional: PayPal redirect URLs (defaults to FRONTEND_BASE_URL/payment if not set)
-# PAYPAL_RETURN_URL=http://localhost:3000/payment
-# PAYPAL_CANCEL_URL=http://localhost:3000/payment
+# # PayPal Configuration (for payment functionality)
+# # Get your credentials from: https://developer.paypal.com/
+# # For sandbox testing, use sandbox credentials
+# # For production, use live credentials
+# PAYPAL_CLIENT_ID=your_paypal_client_id_here
+# PAYPAL_CLIENT_SECRET=your_paypal_client_secret_here
+# PAYPAL_MODE=sandbox
+# # Optional: PayPal redirect URLs (defaults to FRONTEND_BASE_URL/payment if not set)
+# # PAYPAL_RETURN_URL=http://localhost:3000/payment
+# # PAYPAL_CANCEL_URL=http://localhost:3000/payment
 

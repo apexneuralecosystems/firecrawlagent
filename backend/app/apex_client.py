@@ -34,15 +34,6 @@ def get_apex_client():
     return _apex_client
 
 async def init_apex_async():
-    """Initialize apex client and bootstrap database in async context."""
+    """Initialize apex client in async context."""
     client = init_apex()
-    
-    # Bootstrap database with all models including Payment
-    # Use async method directly since we're in async context
-    try:
-        await client.init_database(models=[Payment])
-        print("✅ Database initialized successfully with Payment model")
-    except Exception as e:
-        print(f"⚠️  Database initialization: {e}")
-    
     return client
