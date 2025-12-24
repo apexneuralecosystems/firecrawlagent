@@ -114,8 +114,6 @@ executing==2.2.0
     # via stack-data
 fastapi==0.116.1
     # via beta9
-fastembed==0.7.1
-    # via llama-index-embeddings-fastembed
 feedfinder2==0.0.4
     # via newspaper3k
 feedparser==6.0.11
@@ -253,7 +251,9 @@ llama-index-core==0.13.1
     #   llama-index-readers-llama-parse
     #   llama-index-readers-web
     #   llama-index-vector-stores-qdrant
-llama-index-embeddings-fastembed==0.4.0
+# llama-index-embeddings-fastembed==0.1.2
+    # Disabled: incompatible with available fastembed versions
+    # llama-index-embeddings-fastembed 0.1.2 requires fastembed<0.2.0, but only versions 0.5.0+ are available
     # via firecrawl-agent (pyproject.toml)
 llama-index-embeddings-openai==0.5.0
     # via
@@ -263,6 +263,8 @@ llama-index-indices-managed-llama-cloud==0.9.1
     # via llama-index
 llama-index-instrumentation==0.4.0
     # via llama-index-workflows
+llama-index-llms-litellm==0.6.3
+    # via firecrawl-agent (pyproject.toml)
 llama-index-llms-lmstudio==0.4.0
     # via firecrawl-agent (pyproject.toml)
 llama-index-llms-ollama==0.7.0
@@ -276,6 +278,8 @@ llama-index-readers-file==0.5.1
 llama-index-readers-llama-parse==0.5.0
     # via llama-index
 llama-index-readers-web==0.5.0
+    # via firecrawl-agent (pyproject.toml)
+llama-index-vector-stores-chroma==0.5.3
     # via firecrawl-agent (pyproject.toml)
 llama-index-vector-stores-qdrant==0.7.1
     # via firecrawl-agent (pyproject.toml)
@@ -643,3 +647,7 @@ wsproto==1.2.0
     #   trio-websocket
 yarl==1.20.1
     # via aiohttp
+chromadb>=0.4.0
+    # via firecrawl-agent (pyproject.toml)
+litellm>=1.63.8
+    # via firecrawl-agent (pyproject.toml)

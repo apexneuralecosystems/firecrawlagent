@@ -423,9 +423,10 @@ class AgenticRAGWorkflow(Workflow):
         if llm is not None:
             self.llm = llm
         else:
-            # Fallback LLM - use the same model as main app
+            # Fallback LLM - use the same model as main app (from env var or default)
+            model = os.getenv("LLM_MODEL", "openrouter/google/gemini-2.0-flash-exp:free")
             self.llm = LiteLLM(
-                model="openrouter/google/gemini-2.0-flash-exp:free",
+                model=model,
                 api_base="https://openrouter.ai/api/v1",
                 api_key=os.getenv("OPENROUTER_API_KEY"),
             )

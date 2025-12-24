@@ -81,7 +81,6 @@ except (ImportError, AttributeError):
     # If we can't patch, that's okay - we'll handle errors later
     pass
 
-from workflow import CorrectiveRAGWorkflow
 from agentic_workflow import AgenticRAGWorkflow
 from llama_index.core import Settings
 from llama_index.embeddings.openai import OpenAIEmbedding
@@ -335,14 +334,23 @@ session_id = st.session_state.id
 def load_llm():
     """Load and cache the LLM model."""
     try:
+        # Get model from environment variable or use default
+        # Alternative free models if rate-limited:
+        # - openrouter/meta-llama/llama-3.2-3b-instruct:free
+        # - openrouter/google/gemini-flash-1.5:free
+        # - openrouter/mistralai/mistral-7b-instruct:free
+        model = os.getenv("LLM_MODEL", "openrouter/google/gemini-2.0-flash-exp:free")
+        
         # Use a reliable model that's known to work on OpenRouter
         # Format: openrouter/provider/model-name
         llm = LiteLLM(
-            model="openrouter/google/gemini-2.0-flash-exp:free",
+            model=model,
             api_base="https://openrouter.ai/api/v1",
             api_key=os.getenv("OPENROUTER_API_KEY")
         )
-        print(f"✅ LLM loaded: google/gemini-2.0-flash-exp:free")
+        # Extract model name for display (remove openrouter/ prefix)
+        display_name = model.replace("openrouter/", "") if model.startswith("openrouter/") else model
+        print(f"✅ LLM loaded: {display_name}")
         return llm
     except Exception as e:
         st.error(f"Failed to load LLM: {e}")

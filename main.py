@@ -43,7 +43,7 @@ def check_dependencies():
         "streamlit": "streamlit",
         "llama-index": "llama_index",
         "chromadb": "chromadb",
-        "fastembed": "fastembed",
+        # "fastembed": "fastembed",  # Optional: disabled due to version incompatibility
         "litellm": "litellm",
         "python-dotenv": "dotenv",  # python-dotenv is imported as 'dotenv'
     }
