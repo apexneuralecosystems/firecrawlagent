@@ -20,7 +20,6 @@ export default function PaymentComponent({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [orderId, setOrderId] = useState<string | null>(null);
   const [processingReturn, setProcessingReturn] = useState(false);
 
   // Check if returning from PayPal
@@ -68,8 +67,6 @@ export default function PaymentComponent({
         currency,
         description: description || `${planName} Subscription`
       });
-
-      setOrderId(order.order_id || order.order?.id);
 
       // Find approval URL from PayPal response
       const approvalUrl = order.order?.links?.find(

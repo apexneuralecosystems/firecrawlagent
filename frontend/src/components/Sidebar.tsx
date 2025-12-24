@@ -1,4 +1,4 @@
-import { AlertCircle, ArrowUp, CheckCircle2, Info, LogOut, RotateCcw, Upload, User } from 'lucide-react';
+import { AlertCircle, ArrowUp, CheckCircle2, Info, LogOut, RotateCcw, User } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
