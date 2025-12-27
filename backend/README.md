@@ -174,20 +174,25 @@ The backend reads configuration from environment variables. Key variables:
 | `PAYPAL_CLIENT_ID` | No | PayPal client ID | - |
 | `PAYPAL_CLIENT_SECRET` | No | PayPal client secret | - |
 | `PAYPAL_MODE` | No | PayPal mode (sandbox/live) | `sandbox` |
-| `FRONTEND_BASE_URL` | No | Frontend base URL for CORS | `http://localhost:3000` |
+| `ENV` / `ENVIRONMENT` | No | Runtime environment (`development`/`production`) | `development` |
+| `SECRET_KEY` | **Yes (prod)** | JWT signing secret (must be strong + stable) | - |
+| `ALLOWED_ORIGINS` | **Yes (prod)** | Comma-separated CORS origins | - |
+| `CHROMA_DB_PATH` | No | Chroma persistence path | `./chroma_db` |
+| `REQUIRE_SINGLE_WORKER` | No | Enforce single worker in production (`1`/`0`) | `1` |
+| `SSL_CERT_FILE` | No | CA bundle path for outbound HTTPS (SendGrid) | OS default |
+| `FRONTEND_BASE_URL` | No | Frontend base URL (emails/links) | `http://localhost:3000` |
 
 ### CORS Configuration
 
-CORS is configured to allow all origins in development. For production, update `main.py`:
+CORS is configured via the `ALLOWED_ORIGINS` environment variable.
 
-```python
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["https://yourdomain.com"],  # Specific origins
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+- **Development**: if `ALLOWED_ORIGINS` is not set, the API allows `*`
+- **Production**: the API **fails fast** if `ALLOWED_ORIGINS` is not set
+
+Example:
+
+```env
+ALLOWED_ORIGINS=https://app.yourdomain.com,https://www.yourdomain.com
 ```
 
 ## 🏃 Running the Server
@@ -227,14 +232,18 @@ The API will be available at `http://localhost:8000`
 ./run.sh
 ```
 
-**Option 2: Using uvicorn with workers**
+**IMPORTANT (current architecture): run a SINGLE worker**
+
+This backend stores active RAG workflows in-memory. If you run multiple workers/replicas, chat sessions will break.
+
+**Option 2: Using uvicorn**
 ```bash
-uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
+uvicorn main:app --host 0.0.0.0 --port 8000 --workers 1
 ```
 
 **Option 3: Using Gunicorn with Uvicorn workers**
 ```bash
-gunicorn main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+gunicorn main:app -w 1 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
 ```
 
 ## 📡 API Endpoints
@@ -535,8 +544,8 @@ curl -X POST "http://localhost:8000/api/chat" \
 ### Production Considerations
 
 1. **Use PostgreSQL** instead of SQLite
-2. **Use Redis** for session storage instead of in-memory
-3. **Configure CORS** for specific origins
+2. **Run a single worker** (until shared session/workflow storage is implemented)
+3. **Configure CORS** using `ALLOWED_ORIGINS`
 4. **Use environment variables** for all secrets
 5. **Enable HTTPS** with SSL certificates
 6. **Set up logging** and monitoring

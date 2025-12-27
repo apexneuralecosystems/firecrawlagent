@@ -37,6 +37,7 @@ from llama_index.llms.litellm import LiteLLM
 from agentic_workflow import AgenticRAGWorkflow
 import chromadb
 import pydantic_config  # noqa: F401
+from app.config import get_settings
 
 
 class WorkflowService:
@@ -174,7 +175,27 @@ class WorkflowService:
         
         return CustomVectorIndex(vector_store, storage_context, embed_model, nodes)
     
-    async def process_document(self, file_path: str):
+    @staticmethod
+    def _collection_name_for_session(session_id: str) -> str:
+        # Chroma collection names should be stable and avoid special characters where possible.
+        safe = session_id.replace("-", "")
+        return f"session_{safe}"
+
+    @staticmethod
+    def delete_vector_collection_for_session(session_id: str) -> None:
+        """
+        Best-effort deletion of the per-session Chroma collection.
+        This keeps session deletion aligned with privacy expectations.
+        """
+        try:
+            settings = get_settings()
+            chroma_client = chromadb.PersistentClient(path=settings.chroma_db_path)
+            chroma_client.delete_collection(name=WorkflowService._collection_name_for_session(session_id))
+        except Exception as e:
+            # Best-effort cleanup; don't fail session deletion due to cleanup errors.
+            print(f"Warning: Failed to delete Chroma collection for session {session_id}: {e}")
+
+    async def process_document(self, file_path: str, session_id: str):
         """
         Process uploaded document and return workflow.
         
@@ -194,10 +215,12 @@ class WorkflowService:
         except Exception as e:
             raise ValueError(f"Failed to load documents: {e}")
         
+        settings = get_settings()
         print("🗄️ Setting up vector store...")
         # Set up ChromaDB client
-        chroma_client = chromadb.PersistentClient(path="./chroma_db")
-        chroma_collection = chroma_client.get_or_create_collection("demo_collection")
+        chroma_client = chromadb.PersistentClient(path=settings.chroma_db_path)
+        collection_name = self._collection_name_for_session(session_id)
+        chroma_collection = chroma_client.get_or_create_collection(collection_name)
         vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
         print("DEBUG: Chroma vector store created")
         
@@ -314,7 +337,7 @@ class WorkflowService:
                 raise
         
         print("✅ Document processing complete!")
-        return workflow
+        return workflow, collection_name
     
     async def run_query(self, workflow, query: str) -> Tuple[any, str]:
         """

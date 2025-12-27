@@ -13,9 +13,32 @@ from datetime import datetime
 from typing import Dict, Optional
 from dotenv import load_dotenv
 from app.apex_client import init_apex_async, get_apex_client
+from app.config import get_settings, validate_production_env
 from app.routers.auth import router as auth_router
+from app.routers.compat import router as compat_router
 from app.routers.payments import router as payments_router
 from apex.infrastructure.email.sendgrid import SendGridEmailAdapter
+
+
+# NOTE: We intentionally avoid custom `ssl` context hacks.
+# If local certificate verification fails (common when Python isn't wired to macOS Keychain),
+# we rely on the standard OpenSSL env var `SSL_CERT_FILE` to point at a CA bundle.
+def _ensure_ssl_cert_file() -> None:
+    """
+    Best-effort: if SSL_CERT_FILE isn't set, try using certifi's CA bundle.
+    This keeps the code aligned with upstream packages (no ssl monkeypatching),
+    while fixing common macOS certificate store issues.
+    """
+    if os.getenv("SSL_CERT_FILE"):
+        return
+    try:
+        import certifi  # type: ignore
+
+        os.environ["SSL_CERT_FILE"] = certifi.where()
+        print("🔒 Set SSL_CERT_FILE from certifi bundle for outbound HTTPS.")
+    except Exception:
+        # If certifi isn't installed, do nothing.
+        return
 
 
 # IMPORTANT: Add backend directory FIRST to avoid conflict with root app.py
@@ -86,17 +109,32 @@ app = FastAPI(
 )
 @app.on_event("startup")
 async def startup():
+    settings = get_settings()
+    validate_production_env(settings)
+    _ensure_ssl_cert_file()
     await init_apex_async()
-# CORS middleware - allow all origins
+
+# CORS middleware
+settings = get_settings()
+allow_origins = settings.allowed_origins if settings.allowed_origins else ["*"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allow_origins,
     allow_credentials=False,  # Must be False when allow_origins=["*"]
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# In-memory session storage (use Redis in production)
+# In-memory session storage.
+# NOTE: This is not horizontally scalable. In production, run a SINGLE worker/replica unless you
+# add a shared session/workflow store.
+if settings.is_production and settings.require_single_worker:
+    workers = os.getenv("WEB_CONCURRENCY") or os.getenv("UVICORN_WORKERS")
+    if workers and workers.isdigit() and int(workers) > 1:
+        raise RuntimeError(
+            "WEB_CONCURRENCY/UVICORN_WORKERS > 1 is not supported with in-memory sessions. "
+            "Set it to 1 or implement shared session storage."
+        )
 sessions: Dict[str, Dict] = {}
 
 @app.get("/")
@@ -150,10 +188,11 @@ async def upload_document(file: UploadFile = File(...)):
             session_id = str(uuid.uuid4())
             workflow_service = WorkflowService()
             # process_document expects a directory path, not a file path
-            workflow = await workflow_service.process_document(temp_dir)
+            workflow, collection_name = await workflow_service.process_document(temp_dir, session_id=session_id)
             
             sessions[session_id] = {
                 "workflow": workflow,
+                "collection_name": collection_name,
                 "filename": file.filename,
                 "uploaded_at": datetime.now().isoformat(),
                 "file_size": len(content)
@@ -241,6 +280,10 @@ async def get_session(session_id: str):
 async def delete_session(session_id: str):
     """Delete a session."""
     if session_id in sessions:
+        try:
+            WorkflowService.delete_vector_collection_for_session(session_id)
+        except Exception as e:
+            print(f"Warning: vector collection cleanup failed for {session_id}: {e}")
         del sessions[session_id]
         return {"status": "deleted", "session_id": session_id}
     return {"status": "not_found", "session_id": session_id}
@@ -383,6 +426,7 @@ You're receiving this email because you subscribed to our newsletter.
     
 app.include_router(auth_router)
 app.include_router(payments_router)
+app.include_router(compat_router)
 
 if __name__ == "__main__":
     import uvicorn

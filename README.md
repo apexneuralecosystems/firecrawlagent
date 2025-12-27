@@ -260,6 +260,13 @@ Create a `.env` file in the project root:
 # Required
 FIRECRAWL_API_KEY=your_firecrawl_api_key_here
 OPENROUTER_API_KEY=your_openrouter_api_key_here
+SECRET_KEY=your-secret-key-minimum-32-characters-long
+
+# Runtime (set to production in deploy)
+ENV=development
+
+# CORS (required in production; comma-separated)
+ALLOWED_ORIGINS=http://localhost:3000
 
 # Optional - LLM Configuration
 LLM_MODEL=openrouter/google/gemini-2.0-flash-exp:free
@@ -278,6 +285,9 @@ FRONTEND_BASE_URL=http://localhost:3000
 # Optional - Database (defaults to SQLite)
 DATABASE_URL=sqlite:///./app.db
 # For PostgreSQL: DATABASE_URL=postgresql://user:password@localhost/dbname
+
+# Optional - Chroma persistence path (use a persistent volume in production)
+CHROMA_DB_PATH=./chroma_db
 ```
 
 ### LLM Configuration
@@ -344,9 +354,9 @@ python main.py
 **Backend:**
 ```bash
 cd backend
-uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
+uvicorn main:app --host 0.0.0.0 --port 8000 --workers 1
 # Or with Gunicorn:
-gunicorn main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+gunicorn main:app -w 1 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
 ```
 
 **Frontend:**
@@ -355,6 +365,12 @@ cd frontend
 bun run build
 # Serve the dist/ directory with a web server like nginx
 ```
+
+#### Production notes
+- **Single worker required (currently)**: the backend stores active RAG workflows in-memory, so use `--workers 1`.
+- **CORS**: set `ALLOWED_ORIGINS` in production (API fails fast if missing).
+- **Chroma persistence**: set `CHROMA_DB_PATH` to a persistent volume path.
+- **Email**: SendGrid requires outbound HTTPS with valid certificate trust (configure `SSL_CERT_FILE` on your host if needed).
 
 ### Option 5: Setup Verification
 

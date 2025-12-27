@@ -4,14 +4,14 @@ Payment router - PayPal integration.
 import os
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
-from apex.sync import _run, _client
 from app.deps.auth import get_current_user
+from app.apex_client import get_apex_client
 
 router = APIRouter(prefix="/api/payments", tags=["Payments"])
 
 
 @router.get("/config")
-def check_paypal_config(user=Depends(get_current_user)):
+async def check_paypal_config(user=Depends(get_current_user)):
     """Check PayPal configuration status."""
     paypal_client_id = os.getenv("PAYPAL_CLIENT_ID") or os.getenv("NEW_US_SANDBOX_CLIENT_ID")
     paypal_client_secret = os.getenv("PAYPAL_CLIENT_SECRET") or os.getenv("NEW_US_SANDBOX_SECRET")
@@ -39,29 +39,25 @@ class CaptureOrderRequest(BaseModel):
 
 
 @router.post("/create-order")
-def create_order_endpoint(request: CreateOrderRequest, user=Depends(get_current_user)):
+async def create_order_endpoint(request: CreateOrderRequest, user=Depends(get_current_user)):
     """Create PayPal order endpoint."""
     import traceback
     try:
-        client = _client(None)
-        
-        async def _create_order():
-            # Get frontend base URL from environment variable
-            frontend_base_url = os.getenv('FRONTEND_BASE_URL', 'http://localhost:3000')
-            return_url = request.return_url or os.getenv('PAYPAL_RETURN_URL', f"{frontend_base_url}/payment")
-            cancel_url = request.cancel_url or os.getenv('PAYPAL_CANCEL_URL', f"{frontend_base_url}/payment")
-            
-            return await client.payments.create_order(
-                amount=request.amount,
-                currency=request.currency,
-                description=request.description,
-                return_url=return_url,
-                cancel_url=cancel_url,
-                save_to_db=True
-            )
-        
-        order = _run(_create_order())
-        return order
+        client = get_apex_client()
+
+        # Get frontend base URL from environment variable
+        frontend_base_url = os.getenv('FRONTEND_BASE_URL', 'http://localhost:3000')
+        return_url = request.return_url or os.getenv('PAYPAL_RETURN_URL', f"{frontend_base_url}/payment")
+        cancel_url = request.cancel_url or os.getenv('PAYPAL_CANCEL_URL', f"{frontend_base_url}/payment")
+
+        return await client.payments.create_order(
+            amount=request.amount,
+            currency=request.currency,
+            description=request.description,
+            return_url=return_url,
+            cancel_url=cancel_url,
+            save_to_db=True
+        )
     except ValueError as e:
         # PayPal configuration error
         error_msg = str(e)
@@ -104,34 +100,24 @@ def create_order_endpoint(request: CreateOrderRequest, user=Depends(get_current_
 
 
 @router.post("/capture-order")
-def capture_order_endpoint(request: CaptureOrderRequest, user=Depends(get_current_user)):
+async def capture_order_endpoint(request: CaptureOrderRequest, user=Depends(get_current_user)):
     """Capture PayPal order endpoint."""
     try:
-        client = _client(None)
-        
-        async def _capture_order():
-            return await client.payments.capture_order(
-                order_id=request.order_id,
-                update_db=True
-            )
-        
-        capture = _run(_capture_order())
-        return capture
+        client = get_apex_client()
+        return await client.payments.capture_order(
+            order_id=request.order_id,
+            update_db=True
+        )
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get("/order/{order_id}")
-def get_order_endpoint(order_id: str, user=Depends(get_current_user)):
+async def get_order_endpoint(order_id: str, user=Depends(get_current_user)):
     """Get PayPal order by ID endpoint."""
     try:
-        client = _client(None)
-        
-        async def _get_order():
-            return await client.payments.paypal_service.get_order(order_id)
-        
-        order = _run(_get_order())
-        return order
+        client = get_apex_client()
+        return await client.payments.paypal_service.get_order(order_id)
     except Exception as e:
         raise HTTPException(status_code=404, detail=str(e))
 

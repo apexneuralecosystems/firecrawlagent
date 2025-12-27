@@ -1,0 +1,2 @@
+apex-saas-framework>=0.3.31
+python-dotenv>=1.0.0

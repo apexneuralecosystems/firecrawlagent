@@ -6,12 +6,20 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
+import OpenSourceLicensePage from './pages/OpenSourceLicensePage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import SecurityPage from './pages/SecurityPage';
+import TermsPage from './pages/TermsPage';
 
 function App() {
   return (
     <Routes>
       {/* Public Landing Page */}
       <Route path="/" element={<LandingPage />} />
+      <Route path="/terms" element={<TermsPage />} />
+      <Route path="/privacy" element={<PrivacyPolicyPage />} />
+      <Route path="/open-source-license" element={<OpenSourceLicensePage />} />
+      <Route path="/security" element={<SecurityPage />} />
 
       {/* Auth Routes */}
       <Route element={<AuthLayout />}>
