@@ -40,7 +40,8 @@ export default function DashboardLayout() {
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-blue-600/10 blur-[120px] rounded-full" />
                     <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-indigo-600/10 blur-[120px] rounded-full" />
                 </div>
-                <div className="relative z-10 flex-1 flex flex-col">
+                <div className="relative z-10 flex-1 flex flex-col min-h-0">
+
                     {!sessionId ? (
                         <WelcomeScreen />
                     ) : (
