@@ -1,9 +1,24 @@
-import { Link } from 'react-router-dom';
-import { 
-  Shield, Database, Eye, Share2, Globe, Lock, Cookie, Clock, 
-  UserCheck, Bell, Baby, User, Mail, Building2, ArrowLeft, 
-  FileText, Brain, Server, Trash2, Zap
+import {
+  ArrowLeft,
+  Baby,
+  Bell,
+  Brain,
+  Building2,
+  Clock,
+  Cookie,
+  Database, Eye,
+  FileText,
+  Globe, Lock,
+  Mail,
+  Server,
+  Share2,
+  Shield,
+  Trash2,
+  User,
+  UserCheck,
+  Zap
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const sections = [
   {
@@ -239,7 +254,7 @@ export default function PrivacyPolicyPage() {
 
           {/* Sections */}
           <div className="space-y-6">
-            {sections.map((section, index) => {
+            {sections.map((section) => {
               const Icon = section.icon;
               return (
                 <div
