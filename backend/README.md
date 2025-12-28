@@ -16,7 +16,8 @@
 - [Features](#features)
 - [Tech Stack](#tech-stack)
 - [Prerequisites](#prerequisites)
-- [Installation](#installation)
+- [Quick Start](#-quick-start)
+- [Installation (Detailed)](#-installation-detailed)
 - [Configuration](#configuration)
 - [Running the Server](#running-the-server)
 - [API Endpoints](#api-endpoints)
@@ -27,6 +28,7 @@
 - [Testing](#testing)
 - [Deployment](#deployment)
 - [Troubleshooting](#troubleshooting)
+- [Complete Commands Reference](#-complete-commands-reference)
 
 ## 🎯 Overview
 
@@ -79,83 +81,180 @@ The FireCrawl Agent Backend is a FastAPI-based REST API that powers the FireCraw
 
 ## 📦 Prerequisites
 
-- Python 3.11 or later
+- Python 3.11 or later (Python 3.13 supported)
 - pip or uv package manager
+- Node.js & npm (for PM2 process manager - optional)
+- PostgreSQL (for production database)
 - FireCrawl API key
 - LLM API key (OpenRouter, OpenAI, etc.)
-- (Optional) PostgreSQL for production
 - (Optional) SendGrid API key for emails
 - (Optional) PayPal credentials for payments
 
-## 🚀 Installation
+---
 
-### 1. Navigate to Backend Directory
+## ⚡ Quick Start
+
 ```bash
+# 1. Navigate to backend directory
 cd backend
-```
 
-### 2. Create Virtual Environment (Recommended)
-```bash
-python -m venv venv
+# 2. Create and activate virtual environment
+python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# 3. Install dependencies (IMPORTANT: Install in this order!)
+pip install -r ../requirements.txt   # Root-level requirements FIRST
+pip install -r requirements.txt      # Backend-specific requirements
+pip install email-validator          # Required for Pydantic email validation
+
+# 4. Run database migrations
+alembic upgrade head
+
+# 5. Start the server
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-### 3. Install Dependencies
+The API will be available at `http://localhost:8000`
 
-**Option A: Using pip**
+---
+
+## 🚀 Installation (Detailed)
+
+### Step 1: Navigate to Backend Directory
+
 ```bash
-# Install backend-specific dependencies
-pip install -r requirements.txt
+cd /path/to/firecrawlagent/backend
+```
 
-# Also install root requirements (if needed)
+### Step 2: Create Virtual Environment
+
+```bash
+# Create virtual environment
+python3 -m venv venv
+
+# Activate virtual environment
+source venv/bin/activate  # On macOS/Linux
+# OR
+venv\Scripts\activate     # On Windows
+```
+
+### Step 3: Install Dependencies
+
+> ⚠️ **IMPORTANT**: You must install dependencies in the correct order!
+
+**Step 3a: Install Root-Level Requirements (FIRST)**
+
+The root `requirements.txt` contains all the core dependencies including LlamaIndex, ChromaDB, LiteLLM, and other essential packages:
+
+```bash
 pip install -r ../requirements.txt
 ```
 
-**Option B: Using uv (Recommended)**
+This will install 150+ packages including:
+- `llama-index` - RAG framework
+- `chromadb` - Vector database
+- `litellm` - LLM integration
+- `firecrawl-py` - Web scraping
+- `openai` - OpenAI client
+- And many more...
+
+**Step 3b: Install Backend-Specific Requirements**
+
 ```bash
-# From project root
-uv sync
+pip install -r requirements.txt
 ```
 
-### 4. Set Up Environment Variables
+This installs FastAPI server dependencies:
+- `fastapi` - Web framework
+- `uvicorn` - ASGI server
+- `python-multipart` - File uploads
+- `asyncpg` / `psycopg2-binary` - PostgreSQL drivers
 
-Copy environment variables from parent `.env` or create `backend/.env`:
+**Step 3c: Install Additional Required Packages**
+
+```bash
+# Required for Pydantic email validation
+pip install email-validator
+
+# Install Apex SaaS Framework (for authentication)
+pip install apex-saas-framework
+```
+
+### Step 4: Set Up Environment Variables
+
+Create a `.env` file in the backend directory:
+
+```bash
+cp ../.env .env  # Copy from parent if exists
+# OR create new one
+touch .env
+```
+
+Add the following configuration:
+
 ```env
-# Required
+# ═══════════════════════════════════════════════════════════════
+# REQUIRED CONFIGURATION
+# ═══════════════════════════════════════════════════════════════
+
+# FireCrawl API Key (get from https://firecrawl.dev)
 FIRECRAWL_API_KEY=your_firecrawl_api_key_here
+
+# LLM API Key (OpenRouter recommended)
 OPENROUTER_API_KEY=your_openrouter_api_key_here
 
-# Optional - LLM Configuration
+# ═══════════════════════════════════════════════════════════════
+# DATABASE CONFIGURATION
+# ═══════════════════════════════════════════════════════════════
+
+# SQLite (Development)
+DATABASE_URL=sqlite:///./app.db
+
+# PostgreSQL (Production) - Choose one format:
+# DATABASE_URL=postgresql://user:password@localhost:5432/dbname
+# DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/dbname
+
+# ═══════════════════════════════════════════════════════════════
+# OPTIONAL CONFIGURATION
+# ═══════════════════════════════════════════════════════════════
+
+# LLM Model (default: gemini-2.0-flash)
 LLM_MODEL=openrouter/google/gemini-2.0-flash-exp:free
 
-# Optional - Database
-DATABASE_URL=sqlite:///./app.db
-# For PostgreSQL: DATABASE_URL=postgresql://user:password@localhost/dbname
-
-# Optional - Email Service
+# Email Service (SendGrid)
 SENDGRID_API_KEY=your_sendgrid_api_key
 
-# Optional - Payment Processing
+# Payment Processing (PayPal)
 PAYPAL_CLIENT_ID=your_paypal_client_id
 PAYPAL_CLIENT_SECRET=your_paypal_client_secret
 PAYPAL_MODE=sandbox  # or 'live'
 
-# Optional - Frontend URL
+# Frontend URL (for email links)
 FRONTEND_BASE_URL=http://localhost:3000
+
+# JWT Secret (REQUIRED for production)
+SECRET_KEY=your_super_secret_key_here
+
+# CORS Origins (REQUIRED for production)
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
 ```
 
-### 5. Set Up Database
+### Step 5: Set Up Database
 
-**Initialize Database (if using Alembic):**
+**Run Migrations:**
 ```bash
-# Run migrations
 alembic upgrade head
 ```
 
-**Create New Migration:**
+**Create New Migration (when models change):**
 ```bash
 alembic revision --autogenerate -m "description of changes"
 alembic upgrade head
+```
+
+**Rollback Migration:**
+```bash
+alembic downgrade -1
 ```
 
 ## ⚙️ Configuration
@@ -199,52 +298,108 @@ ALLOWED_ORIGINS=https://app.yourdomain.com,https://www.yourdomain.com
 
 ### Development Mode
 
-**Option 1: Using the development script (Recommended)**
+> ⚠️ **IMPORTANT**: Always run commands from the `backend` directory with the virtual environment activated!
+
+**Option 1: Direct uvicorn command (Recommended)**
 ```bash
-./run_dev.sh
-# Or on Windows:
-bash run_dev.sh
+# Make sure you're in the backend directory
+cd /path/to/firecrawlagent/backend
+
+# Activate virtual environment
+source venv/bin/activate
+
+# Run the server
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-**Option 2: Using Python directly**
+**Option 2: Using the development script**
+```bash
+./run_dev.sh
+```
+
+**Option 3: Using Python directly**
 ```bash
 python main.py
 ```
 
-**Option 3: Using uvicorn directly (from project root)**
-```bash
-# From project root
-uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
-```
+The API will be available at:
+- **API**: `http://localhost:8000`
+- **Swagger UI**: `http://localhost:8000/docs`
+- **ReDoc**: `http://localhost:8000/redoc`
 
-**Option 4: Using uvicorn from backend directory**
-```bash
-# From backend directory
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
-
-The API will be available at `http://localhost:8000`
+---
 
 ### Production Mode
 
-**Option 1: Using the production script**
-```bash
-./run.sh
-```
+**IMPORTANT**: This backend stores active RAG workflows in-memory. Run a **SINGLE worker** only!
 
-**IMPORTANT (current architecture): run a SINGLE worker**
-
-This backend stores active RAG workflows in-memory. If you run multiple workers/replicas, chat sessions will break.
-
-**Option 2: Using uvicorn**
+**Option 1: Using uvicorn**
 ```bash
 uvicorn main:app --host 0.0.0.0 --port 8000 --workers 1
 ```
 
-**Option 3: Using Gunicorn with Uvicorn workers**
+**Option 2: Using Gunicorn**
 ```bash
 gunicorn main:app -w 1 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
 ```
+
+**Option 3: Using the production script**
+```bash
+./run.sh
+```
+
+---
+
+### Using PM2 (Process Manager)
+
+PM2 keeps your server running in the background and auto-restarts on crashes.
+
+**Step 1: Install PM2 globally**
+```bash
+npm install -g pm2
+```
+
+**Step 2: Create ecosystem file**
+
+Create `ecosystem.config.js` in the backend directory:
+
+```javascript
+module.exports = {
+  apps: [{
+    name: "firecrawl-api",
+    cwd: "/path/to/firecrawlagent/backend",
+    script: "venv/bin/uvicorn",
+    args: "main:app --host 0.0.0.0 --port 8000",
+    interpreter: "none",
+    env: {
+      PATH: "./venv/bin:" + process.env.PATH
+    }
+  }]
+};
+```
+
+**Step 3: Start with PM2**
+```bash
+pm2 start ecosystem.config.js
+```
+
+**Alternative: One-liner command**
+```bash
+cd /path/to/firecrawlagent/backend
+pm2 start "source venv/bin/activate && uvicorn main:app --host 0.0.0.0 --port 8000" --name firecrawl-api --interpreter bash
+```
+
+**PM2 Commands Reference:**
+
+| Command | Description |
+|---------|-------------|
+| `pm2 list` | Show all running processes |
+| `pm2 logs firecrawl-api` | View logs |
+| `pm2 restart firecrawl-api` | Restart server |
+| `pm2 stop firecrawl-api` | Stop server |
+| `pm2 delete firecrawl-api` | Remove from PM2 |
+| `pm2 save` | Save process list |
+| `pm2 startup` | Enable auto-start on boot |
 
 ## 📡 API Endpoints
 
@@ -582,33 +737,68 @@ gunicorn main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
 
 ### Common Issues
 
-1. **Import Errors**
-   - Ensure you're in the backend directory or have correct Python path
+1. **ModuleNotFoundError: No module named 'backend'**
+   ```
+   ModuleNotFoundError: No module named 'backend'
+   ```
+   **Solution**: You're running the command from the wrong directory.
+   - If inside `backend/` directory, use: `uvicorn main:app --reload`
+   - If at project root, use: `uvicorn backend.main:app --reload`
+
+2. **ModuleNotFoundError: No module named 'llama_index'**
+   ```
+   ModuleNotFoundError: No module named 'llama_index'
+   ```
+   **Solution**: Install root requirements first:
+   ```bash
+   pip install -r ../requirements.txt
+   ```
+
+3. **ModuleNotFoundError: No module named 'email_validator'**
+   ```
+   ImportError: email-validator is not installed
+   ```
+   **Solution**: Install email-validator:
+   ```bash
+   pip install email-validator
+   ```
+
+4. **bcrypt Version Warning**
+   ```
+   AttributeError: module 'bcrypt' has no attribute '__about__'
+   ```
+   **Solution**: This is a harmless warning. To fix it:
+   ```bash
+   pip install bcrypt==4.0.1
+   ```
+
+5. **Import Errors**
+   - Ensure you're in the backend directory
    - Check that all dependencies are installed
    - Verify virtual environment is activated
 
-2. **Database Connection Errors**
+6. **Database Connection Errors**
    - Check `DATABASE_URL` environment variable
    - Verify database is running (for PostgreSQL)
    - Check database file permissions (for SQLite)
 
-3. **Port Already in Use**
+7. **Port Already in Use**
    - Change port: `uvicorn main:app --port 8001`
    - Kill existing process: `lsof -ti:8000 | xargs kill`
 
-4. **CORS Errors**
+8. **CORS Errors**
    - Verify CORS configuration in `main.py`
-   - Check `FRONTEND_BASE_URL` matches frontend URL
+   - Check `ALLOWED_ORIGINS` environment variable
 
-5. **Authentication Errors**
+9. **Authentication Errors**
    - Verify JWT secret is set
    - Check token expiration
    - Ensure token is included in Authorization header
 
-6. **File Upload Errors**
-   - Check file size limits
-   - Verify `uploads/` directory exists and is writable
-   - Ensure `python-multipart` is installed
+10. **File Upload Errors**
+    - Check file size limits
+    - Verify `uploads/` directory exists and is writable
+    - Ensure `python-multipart` is installed
 
 ### Debug Mode
 
@@ -623,6 +813,107 @@ logging.basicConfig(level=logging.DEBUG)
 - Check logs in terminal for detailed error messages
 - Review API documentation at `/docs`
 - Check [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for more details
+
+---
+
+## 📋 Complete Commands Reference
+
+### Installation Commands
+
+```bash
+# Navigate to backend
+cd /path/to/firecrawlagent/backend
+
+# Create virtual environment
+python3 -m venv venv
+
+# Activate virtual environment
+source venv/bin/activate        # macOS/Linux
+venv\Scripts\activate           # Windows
+
+# Install ALL dependencies (in order)
+pip install -r ../requirements.txt    # Root requirements FIRST
+pip install -r requirements.txt       # Backend requirements
+pip install email-validator           # Email validation
+pip install apex-saas-framework       # Authentication framework
+
+# Fix bcrypt warning (optional)
+pip install bcrypt==4.0.1
+```
+
+### Database Commands
+
+```bash
+# Run migrations
+alembic upgrade head
+
+# Create new migration
+alembic revision --autogenerate -m "description"
+
+# Rollback one migration
+alembic downgrade -1
+
+# View migration history
+alembic history
+```
+
+### Server Commands
+
+```bash
+# Development (with auto-reload)
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+# Production (single worker)
+uvicorn main:app --host 0.0.0.0 --port 8000 --workers 1
+
+# With Gunicorn
+gunicorn main:app -w 1 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+```
+
+### PM2 Commands
+
+```bash
+# Start server
+pm2 start ecosystem.config.js
+
+# View processes
+pm2 list
+
+# View logs
+pm2 logs firecrawl-api
+
+# Restart
+pm2 restart firecrawl-api
+
+# Stop
+pm2 stop firecrawl-api
+
+# Delete
+pm2 delete firecrawl-api
+
+# Save for auto-restart
+pm2 save
+pm2 startup
+```
+
+### Utility Commands
+
+```bash
+# Check installed packages
+pip list
+
+# Export requirements
+pip freeze > requirements-lock.txt
+
+# Update pip
+pip install --upgrade pip
+
+# Kill process on port
+lsof -ti:8000 | xargs kill
+
+# Check if server is running
+curl http://localhost:8000/api/health
+```
 
 ## 📚 Additional Resources
 
