@@ -709,15 +709,26 @@ curl -X POST "http://localhost:8000/api/chat" \
 
 ### Deployment Options
 
-**Option 1: Docker**
-```dockerfile
-FROM python:3.11-slim
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-COPY . .
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+**Option 1: Docker (recommended)**
+
+The repo includes a production Dockerfile that builds the Vite frontend and runs FastAPI behind nginx (single container, port 3000).
+
+```bash
+# Build (from project root)
+docker build -t firecrawlagent .
+
+# Run (pass env vars for API keys, DB, etc.)
+docker run -p 3000:3000 \
+  -e FIRECRAWL_API_KEY=your_key \
+  -e OPENROUTER_API_KEY=your_key \
+  -e DATABASE_URL=postgresql://... \
+  -e SECRET_KEY=your_secret \
+  firecrawlagent
 ```
+
+- **Ports (keep different)**: Only **3000** is exposed. Nginx listens on 3000 and proxies `/api/` to FastAPI on **8000** (internal). Do not change backend port without updating `nginx.conf` and `BACKEND_PORT`.
+- **Frontend**: Built with `VITE_API_URL=""` so the browser uses the same origin; no code change needed for production.
+- **Health**: `GET http://localhost:3000/healthz` returns `200 ok`.
 
 **Option 2: Cloud Platforms**
 - Deploy to platforms like Railway, Render, Fly.io, or AWS

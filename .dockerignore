@@ -1,0 +1,37 @@
+# Git and env
+.git
+.gitignore
+.env
+.env.*
+!.envexample
+
+# Python
+venv
+.venv
+__pycache__
+*.py[cod]
+*.pyo
+.pytest_cache
+.mypy_cache
+*.egg-info
+.eggs
+
+# Node / frontend (we build inside Docker)
+frontend/node_modules
+frontend/dist
+frontend/.cache
+frontend/bun.lock
+
+# IDE and OS
+.idea
+.vscode
+*.swp
+.DS_Store
+
+# Docs and local refs (optional; remove if you need them in image)
+# README.md
+# API_DOCUMENTATION.md
+# packagereference
+
+# Test and scripts (optional)
+# scripts/
