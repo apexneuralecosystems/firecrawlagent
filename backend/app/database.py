@@ -1,13 +1,17 @@
 """
 Database configuration using SQLAlchemy
 """
+from pathlib import Path
+
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+# Load .env from project root (parent of backend/) so DATABASE_URL is set when running from backend/
+_project_root = Path(__file__).resolve().parents[2]
+load_dotenv(_project_root / ".env")
 from sqlalchemy.orm import DeclarativeBase
 
 class Base(DeclarativeBase):

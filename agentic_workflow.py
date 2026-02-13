@@ -424,7 +424,7 @@ class AgenticRAGWorkflow(Workflow):
             self.llm = llm
         else:
             # Fallback LLM - use the same model as main app (from env var or default)
-            model = os.getenv("LLM_MODEL", "openrouter/google/gemini-2.0-flash-exp:free")
+            model = os.getenv("LLM_MODEL", "openrouter/openai/gpt-4o-mini")
             self.llm = LiteLLM(
                 model=model,
                 api_base="https://openrouter.ai/api/v1",

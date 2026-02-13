@@ -28,14 +28,13 @@ if project_root not in sys.path:
         sys.path.insert(0, backend_dir)
         sys.path.insert(1, project_root)
 
-# Import necessary modules
+# Import necessary modules (chromadb/ChromaVectorStore imported lazily to avoid
+# opentelemetry version conflicts at startup; see process_document and delete_vector_collection_for_session)
 from llama_index.core import Settings, StorageContext, SimpleDirectoryReader
-from llama_index.core.node_parser import SimpleNodeParser
-from llama_index.vector_stores.chroma import ChromaVectorStore
+from llama_index.core.node_parser import TokenTextSplitter
 from llama_index.embeddings.openai import OpenAIEmbedding
 from llama_index.llms.litellm import LiteLLM
 from agentic_workflow import AgenticRAGWorkflow
-import chromadb
 import pydantic_config  # noqa: F401
 from app.config import get_settings
 
@@ -115,7 +114,7 @@ class WorkflowService:
     @staticmethod
     def _load_llm():
         """Load and cache the LLM model."""
-        model = os.getenv("LLM_MODEL", "openrouter/google/gemini-2.0-flash-exp:free")
+        model = os.getenv("LLM_MODEL", "openrouter/openai/gpt-4o-mini")
         
         llm = LiteLLM(
             model=model,
@@ -188,6 +187,7 @@ class WorkflowService:
         This keeps session deletion aligned with privacy expectations.
         """
         try:
+            import chromadb
             settings = get_settings()
             chroma_client = chromadb.PersistentClient(path=settings.chroma_db_path)
             chroma_client.delete_collection(name=WorkflowService._collection_name_for_session(session_id))
@@ -217,7 +217,9 @@ class WorkflowService:
         
         settings = get_settings()
         print("🗄️ Setting up vector store...")
-        # Set up ChromaDB client
+        # Lazy import to avoid chromadb/opentelemetry at server startup
+        import chromadb
+        from llama_index.vector_stores.chroma import ChromaVectorStore
         chroma_client = chromadb.PersistentClient(path=settings.chroma_db_path)
         collection_name = self._collection_name_for_session(session_id)
         chroma_collection = chroma_client.get_or_create_collection(collection_name)
@@ -249,9 +251,9 @@ class WorkflowService:
         try:
             self._safe_set_embed_model(embed_model)
             
-            # Parse documents into nodes
-            node_parser = SimpleNodeParser.from_defaults()
-            nodes = node_parser.get_nodes_from_documents(documents)
+            # Parse documents into nodes (TokenTextSplitter avoids NLTK/sklearn/numpy ABI issues)
+            text_splitter = TokenTextSplitter(chunk_size=1024, chunk_overlap=20)
+            nodes = text_splitter.get_nodes_from_documents(documents)
             
             # Embed nodes
             print(f"DEBUG: Embedding {len(nodes)} nodes")

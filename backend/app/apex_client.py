@@ -8,12 +8,25 @@ from app.config import get_settings
 # Store the client instance globally
 _apex_client = None
 
+def _ensure_async_pg_url(url: str) -> str:
+    """Ensure DATABASE_URL uses an async driver (asyncpg) for Apex/SQLAlchemy asyncio."""
+    if not url or "+asyncpg" in url:
+        return url
+    # postgresql:// or postgresql+psycopg2:// → postgresql+asyncpg://
+    if url.startswith("postgresql://"):
+        return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    if url.startswith("postgresql+psycopg2://"):
+        return url.replace("postgresql+psycopg2://", "postgresql+asyncpg://", 1)
+    return url
+
+
 def init_apex():
     global _apex_client
     settings = get_settings()
-    # Use Postgres from ENV
+    # Use Postgres from ENV; Apex requires an async driver (asyncpg)
     database_url = os.getenv("DATABASE_URL", "postgresql+asyncpg://devulapellykushalkumarreddy@localhost/firecrawlagent")
-    
+    database_url = _ensure_async_pg_url(database_url)
+
     print(f"🔌 Apex Client connecting to: {database_url}")
 
     secret_key = os.getenv("SECRET_KEY", "default-dev-secret-key")

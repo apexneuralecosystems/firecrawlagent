@@ -335,11 +335,10 @@ def load_llm():
     """Load and cache the LLM model."""
     try:
         # Get model from environment variable or use default
-        # Alternative free models if rate-limited:
-        # - openrouter/meta-llama/llama-3.2-3b-instruct:free
-        # - openrouter/google/gemini-flash-1.5:free
-        # - openrouter/mistralai/mistral-7b-instruct:free
-        model = os.getenv("LLM_MODEL", "openrouter/google/gemini-2.0-flash-exp:free")
+        # Other free models: https://openrouter.ai/collections/free-models
+        # - openrouter/openrouter/free (auto-select free)
+        # - openrouter/meta-llama/llama-3.3-70b-instruct:free
+        model = os.getenv("LLM_MODEL", "openrouter/openai/gpt-4o-mini")
         
         # Use a reliable model that's known to work on OpenRouter
         # Format: openrouter/provider/model-name

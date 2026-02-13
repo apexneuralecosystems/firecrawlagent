@@ -1,11 +1,14 @@
 """
 FastAPI Backend for FireCrawl Agent RAG Application
 """
+# Disable ChromaDB telemetry before any chromadb import (avoids opentelemetry version conflicts)
+import os
+os.environ.setdefault("ANONYMIZED_TELEMETRY", "false")
+
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr
-import os
 import sys
 import tempfile
 import uuid

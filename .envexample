@@ -1,11 +1,8 @@
 # FIRECRAWL_API_KEY=your_firecrawl_api_key_here
 # OPENROUTER_API_KEY=your_openrouter_api_key_here
-# # Optional: Override default LLM model (default: openrouter/google/gemini-2.0-flash-exp:free)
-# # Alternative free models:
-# # - openrouter/meta-llama/llama-3.2-3b-instruct:free
-# # - openrouter/google/gemini-flash-1.5:free
-# # - openrouter/mistralai/mistral-7b-instruct:free
-# LLM_MODEL=openrouter/google/gemini-2.0-flash-exp:free
+# # Optional: Override default LLM model (default: openrouter/openai/gpt-4o-mini)
+# # Free alternatives: openrouter/openrouter/free, openrouter/meta-llama/llama-3.3-70b-instruct:free
+# LLM_MODEL=openrouter/openai/gpt-4o-mini
 
 # # Frontend URLs (required for password reset and payment redirects)
 # FRONTEND_BASE_URL=http://localhost:3000
@@ -28,4 +25,9 @@
 # # Optional: PayPal redirect URLs (defaults to FRONTEND_BASE_URL/payment if not set)
 # # PAYPAL_RETURN_URL=http://localhost:3000/payment
 # # PAYPAL_CANCEL_URL=http://localhost:3000/payment
+OPENROUTER_API_KEY=
+SEND_GRID_API=
+FROM_EMAIL=
+FROM_NAME=Firecrawl Agent
 
+DATABASE_URL=

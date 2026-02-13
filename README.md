@@ -219,7 +219,7 @@ DATABASE_URL=sqlite:///./app.db
 # ═══════════════════════════════════════════════════════════════
 
 # LLM Model (default: gemini-2.0-flash)
-LLM_MODEL=openrouter/google/gemini-2.0-flash-exp:free
+LLM_MODEL=openrouter/openai/gpt-4o-mini
 
 # Email Service (SendGrid)
 SENDGRID_API_KEY=your_sendgrid_api_key
@@ -267,7 +267,7 @@ The backend reads configuration from environment variables. Key variables:
 |----------|----------|-------------|---------|
 | `FIRECRAWL_API_KEY` | Yes | FireCrawl API key for web search | - |
 | `OPENROUTER_API_KEY` | Yes | OpenRouter API key for LLM | - |
-| `LLM_MODEL` | No | LLM model identifier | `openrouter/google/gemini-2.0-flash-exp:free` |
+| `LLM_MODEL` | No | LLM model identifier | `openrouter/openai/gpt-4o-mini` |
 | `DATABASE_URL` | No | Database connection string | `sqlite:///./app.db` |
 | `SENDGRID_API_KEY` | No | SendGrid API key for emails | - |
 | `PAYPAL_CLIENT_ID` | No | PayPal client ID | - |
