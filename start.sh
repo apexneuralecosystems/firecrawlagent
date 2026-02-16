@@ -54,7 +54,12 @@ echo "Python: $(python3 --version 2>/dev/null || true)"
 echo "Configuration:"
 echo "  - PUBLIC_PORT (Nginx): ${PUBLIC_PORT}"
 echo "  - BACKEND_PORT (FastAPI): ${BACKEND_PORT}"
-echo "  - DATABASE_URL: ${DATABASE_URL:0:15}..."
+if [ -n "$DATABASE_URL" ]; then
+    echo "  - DATABASE_URL: [SET] (Chars: ${#DATABASE_URL})"
+else
+    echo "  - DATABASE_URL: [UNSET]"
+fi
+
 
 echo "Configuring Nginx with PORT=${PUBLIC_PORT}..."
 # Reset config to template if needed (optional, but good for restarts if file persisted)
