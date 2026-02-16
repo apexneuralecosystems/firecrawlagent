@@ -57,9 +57,10 @@ RUN chmod +x /start.sh
 # Allow non-root user to run nginx and write to required dirs
 RUN mkdir -p /var/lib/nginx/body /var/lib/nginx/proxy /var/lib/nginx/fastcgi \
     /var/lib/nginx/uwsgi /var/lib/nginx/scgi /var/log/nginx /run && \
-    chown -R appuser:appgroup /app /var/lib/nginx /var/log/nginx /run /var/cache/nginx 2>/dev/null || true && \
+    chown -R appuser:appgroup /app /var/lib/nginx /var/log/nginx /run /var/cache/nginx /etc/nginx 2>/dev/null || true && \
     # nginx needs to write its pid
     touch /run/nginx.pid && chown appuser:appgroup /run/nginx.pid
+
 
 ENV NODE_ENV=production
 ENV PORT=3000

@@ -35,21 +35,37 @@ BACKEND_PORT=${BACKEND_PORT:-8000}
 PUBLIC_PORT=${PORT:-3000}
 
 # ---------------------------------------------------------------------------
+
 # Dynamic Nginx Configuration
 # ---------------------------------------------------------------------------
 # Replace hardcoded ports in nginx.conf with environment variables
 # This allows Dokploy to assign a random port (e.g. 3000 -> $PORT) and we match it.
-echo "Configuring Nginx with PORT=${PUBLIC_PORT}..."
-sed -i "s/listen 3000;/listen ${PUBLIC_PORT};/g" /etc/nginx/nginx.conf
-sed -i "s/listen \[::\]:3000;/listen \[::\]:${PUBLIC_PORT};/g" /etc/nginx/nginx.conf
-
-echo "Configuring Nginx upstream to BACKEND_PORT=${BACKEND_PORT}..."
-sed -i "s/server 127.0.0.1:8000;/server 127.0.0.1:${BACKEND_PORT};/g" /etc/nginx/nginx.conf
-
 echo "=== Container Startup ==="
+echo "Date: $(date)"
+echo "User: $(whoami) (ID: $(id -u))"
+echo "Arch: $(uname -m)"
 echo "Working directory: $(pwd)"
 echo "Python: $(python3 --version 2>/dev/null || true)"
 echo "Ports: public=${PUBLIC_PORT} (nginx) backend=${BACKEND_PORT} (FastAPI)"
+
+echo "Configuring Nginx with PORT=${PUBLIC_PORT}..."
+if ! sed -i "s/listen 3000;/listen ${PUBLIC_PORT};/g" /etc/nginx/nginx.conf; then
+    echo "ERROR: Failed to patch Nginx PORT. Check permissions on /etc/nginx"
+    sleep 30
+    exit 1
+fi
+if ! sed -i "s/listen \[::\]:3000;/listen \[::\]:${PUBLIC_PORT};/g" /etc/nginx/nginx.conf; then
+    echo "ERROR: Failed to patch Nginx [::] PORT. Check permissions on /etc/nginx"
+    sleep 30
+    exit 1
+fi
+
+echo "Configuring Nginx upstream to BACKEND_PORT=${BACKEND_PORT}..."
+if ! sed -i "s/server 127.0.0.1:8000;/server 127.0.0.1:${BACKEND_PORT};/g" /etc/nginx/nginx.conf; then
+    echo "ERROR: Failed to patch Nginx backend port. Check permissions on /etc/nginx"
+    sleep 30
+    exit 1
+fi
 
 if [ -z "$DATABASE_URL" ]; then
     echo "CRITICAL ERROR: DATABASE_URL is NOT set in the environment!"
