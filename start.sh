@@ -44,6 +44,10 @@ if [ -z "$DATABASE_URL" ]; then
     exit 1
 else
     echo "DEBUG: DATABASE_URL is set (length: ${#DATABASE_URL})"
+    if echo "$DATABASE_URL" | grep -q "localhost"; then
+        echo "WARNING: DATABASE_URL contains 'localhost'. In Docker, this usually fails."
+        echo "Use the service name or host IP instead."
+    fi
 fi
 
 if [ -z "$SECRET_KEY" ]; then

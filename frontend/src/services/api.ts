@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Empty string = same origin (production behind nginx); undefined = dev default
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL ?? (import.meta.env.PROD ? '' : 'http://localhost:8000');
+
 
 /** Base URL used for API requests (for display in health check messages). */
 export function getApiBaseUrl(): string {
