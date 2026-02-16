@@ -39,6 +39,26 @@ echo "Working directory: $(pwd)"
 echo "Python: $(python3 --version 2>/dev/null || true)"
 echo "Ports: public=${PUBLIC_PORT} (nginx) backend=${BACKEND_PORT} (FastAPI)"
 
+if [ -z "$DATABASE_URL" ]; then
+    echo "CRITICAL ERROR: DATABASE_URL is NOT set in the environment!"
+    exit 1
+else
+    echo "DEBUG: DATABASE_URL is set (length: ${#DATABASE_URL})"
+fi
+
+if [ -z "$SECRET_KEY" ]; then
+    echo "CRITICAL ERROR: SECRET_KEY is NOT set!"
+    exit 1
+fi
+
+if [ -z "$FIRECRAWL_API_KEY" ]; then
+    echo "WARNING: FIRECRAWL_API_KEY is NOT set. Search features will fail."
+fi
+
+if [ -z "$OPENROUTER_API_KEY" ]; then
+    echo "WARNING: OPENROUTER_API_KEY is NOT set. AI features will fail."
+fi
+
 # Verify we're at project root and backend is present
 if [ ! -d "backend" ] || [ ! -f "backend/main.py" ]; then
     echo "ERROR: backend/ or backend/main.py not found in $(pwd)"
@@ -51,6 +71,13 @@ if [ ! -d "frontend/dist" ]; then
     ls -la frontend/ 2>/dev/null || true
     exit 1
 fi
+
+echo "Running database migrations..."
+if ! (cd backend && alembic upgrade head); then
+    echo "ERROR: Database migrations failed!"
+    exit 1
+fi
+echo "Database migrations completed successfully."
 
 echo "Starting FastAPI on port ${BACKEND_PORT}..."
 uvicorn backend.main:app \
