@@ -109,7 +109,14 @@ if [ ! -d "frontend/dist" ]; then
 fi
 
 echo "Running database migrations..."
+if ! command -v alembic >/dev/null 2>&1; then
+    echo "ERROR: 'alembic' command not found. Ensure it is in requirements.txt"
+    sleep 30
+    exit 1
+fi
+
 if ! (cd backend && alembic upgrade head); then
+
     echo "ERROR: Database migrations failed!"
     echo "Check your DATABASE_URL and ensure the database is running."
     sleep 10 # Important: wait to ensure logs are captured by deployment tool
