@@ -6,6 +6,7 @@ set -e
 # gracefully (flushes DB connections, finishes in-flight requests).
 # ---------------------------------------------------------------------------
 UVICORN_PID=""
+NGINX_PID=""
 
 cleanup() {
     echo "=== Caught shutdown signal ==="
@@ -24,7 +25,9 @@ cleanup() {
         fi
     fi
     echo "=== Stopping Nginx ==="
-    nginx -s quit 2>/dev/null || true
+    if [ -n "$NGINX_PID" ] && kill -0 "$NGINX_PID" 2>/dev/null; then
+         kill -QUIT "$NGINX_PID" 2>/dev/null || true
+    fi
     exit 0
 }
 
@@ -46,9 +49,15 @@ echo "User: $(whoami) (ID: $(id -u))"
 echo "Arch: $(uname -m)"
 echo "Working directory: $(pwd)"
 echo "Python: $(python3 --version 2>/dev/null || true)"
-echo "Ports: public=${PUBLIC_PORT} (nginx) backend=${BACKEND_PORT} (FastAPI)"
+echo "Configuration:"
+echo "  - PUBLIC_PORT (Nginx): ${PUBLIC_PORT}"
+echo "  - BACKEND_PORT (FastAPI): ${BACKEND_PORT}"
+echo "  - DATABASE_URL: ${DATABASE_URL:0:15}..."
 
 echo "Configuring Nginx with PORT=${PUBLIC_PORT}..."
+# Reset config to template if needed (optional, but good for restarts if file persisted)
+# We assume pure container restart here.
+
 if ! sed -i "s/listen 3000;/listen ${PUBLIC_PORT};/g" /etc/nginx/nginx.conf; then
     echo "ERROR: Failed to patch Nginx PORT. Check permissions on /etc/nginx"
     sleep 30
@@ -72,7 +81,6 @@ if [ -z "$DATABASE_URL" ]; then
     sleep 10 # Wait for logs to flush
     exit 1
 else
-    echo "DEBUG: DATABASE_URL is set (length: ${#DATABASE_URL})"
     if echo "$DATABASE_URL" | grep -q "localhost"; then
         echo "WARNING: DATABASE_URL contains 'localhost'. In Docker, this usually fails."
         echo "Use the service name or host IP instead."
@@ -167,6 +175,7 @@ fi
 echo "Starting Nginx on port ${PUBLIC_PORT}..."
 nginx -g 'daemon off;' &
 NGINX_PID=$!
+echo "Nginx PID: $NGINX_PID"
 
 # Wait for either process to exit
 wait -n $UVICORN_PID $NGINX_PID 2>/dev/null || wait $UVICORN_PID
