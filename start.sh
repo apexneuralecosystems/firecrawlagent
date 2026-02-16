@@ -35,7 +35,9 @@ trap cleanup TERM INT QUIT
 
 # Ports: public 3000 (nginx), backend 8000 (FastAPI) – keep different to avoid confusion
 BACKEND_PORT=${BACKEND_PORT:-8000}
-PUBLIC_PORT=${PORT:-3000}
+# FORCE public port to 3000. Ignoring $PORT env var to prevent mismatch if Dokploy passes unique internal ports.
+# User MUST set Dokploy Container Port to 3000.
+PUBLIC_PORT=3000
 
 # ---------------------------------------------------------------------------
 
