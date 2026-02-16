@@ -149,7 +149,7 @@ if project_root not in sys.path:
 
 # Load .env from project root (where .env file is located)
 env_path = os.path.join(project_root, '.env')
-load_dotenv(dotenv_path=env_path, override=True)
+load_dotenv(dotenv_path=env_path, override=False)
 
 # (Compat patch already applied above, before app imports)
 
