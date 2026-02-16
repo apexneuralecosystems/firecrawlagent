@@ -7,3 +7,4 @@ asyncpg
 psycopg2-binary
 onnxruntime>=1.16.0
 apex-saas-framework==0.3.24
+email-validator
