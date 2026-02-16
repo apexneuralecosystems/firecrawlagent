@@ -65,13 +65,13 @@ RUN mkdir -p /var/lib/nginx/body /var/lib/nginx/proxy /var/lib/nginx/fastcgi \
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV BACKEND_PORT=8000
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONIOENCODING=UTF-8
 
 EXPOSE 3000
 
 # Switch to non-root user
 USER appuser
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-    CMD nc -z 127.0.0.1 3000 || exit 1
-
 CMD ["/start.sh"]
+
