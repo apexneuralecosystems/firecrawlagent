@@ -47,7 +47,9 @@ COPY --from=frontend-builder /app/dist ./frontend/dist
 # Nginx: replace default config and validate
 RUN rm -f /etc/nginx/sites-enabled/default 2>/dev/null || true
 COPY nginx.conf /etc/nginx/nginx.conf
+RUN chown appuser:appgroup /etc/nginx/nginx.conf && chmod 644 /etc/nginx/nginx.conf
 RUN nginx -t
+
 
 COPY start.sh /start.sh
 RUN chmod +x /start.sh

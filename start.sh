@@ -34,6 +34,18 @@ trap cleanup TERM INT QUIT
 BACKEND_PORT=${BACKEND_PORT:-8000}
 PUBLIC_PORT=${PORT:-3000}
 
+# ---------------------------------------------------------------------------
+# Dynamic Nginx Configuration
+# ---------------------------------------------------------------------------
+# Replace hardcoded ports in nginx.conf with environment variables
+# This allows Dokploy to assign a random port (e.g. 3000 -> $PORT) and we match it.
+echo "Configuring Nginx with PORT=${PUBLIC_PORT}..."
+sed -i "s/listen 3000;/listen ${PUBLIC_PORT};/g" /etc/nginx/nginx.conf
+sed -i "s/listen \[::\]:3000;/listen \[::\]:${PUBLIC_PORT};/g" /etc/nginx/nginx.conf
+
+echo "Configuring Nginx upstream to BACKEND_PORT=${BACKEND_PORT}..."
+sed -i "s/server 127.0.0.1:8000;/server 127.0.0.1:${BACKEND_PORT};/g" /etc/nginx/nginx.conf
+
 echo "=== Container Startup ==="
 echo "Working directory: $(pwd)"
 echo "Python: $(python3 --version 2>/dev/null || true)"
@@ -41,6 +53,7 @@ echo "Ports: public=${PUBLIC_PORT} (nginx) backend=${BACKEND_PORT} (FastAPI)"
 
 if [ -z "$DATABASE_URL" ]; then
     echo "CRITICAL ERROR: DATABASE_URL is NOT set in the environment!"
+    sleep 10 # Wait for logs to flush
     exit 1
 else
     echo "DEBUG: DATABASE_URL is set (length: ${#DATABASE_URL})"
@@ -52,6 +65,7 @@ fi
 
 if [ -z "$SECRET_KEY" ]; then
     echo "CRITICAL ERROR: SECRET_KEY is NOT set!"
+    sleep 10
     exit 1
 fi
 
@@ -67,18 +81,22 @@ fi
 if [ ! -d "backend" ] || [ ! -f "backend/main.py" ]; then
     echo "ERROR: backend/ or backend/main.py not found in $(pwd)"
     ls -la
+    sleep 10
     exit 1
 fi
 
 if [ ! -d "frontend/dist" ]; then
     echo "ERROR: frontend/dist not found (Vite build missing)"
     ls -la frontend/ 2>/dev/null || true
+    sleep 10
     exit 1
 fi
 
 echo "Running database migrations..."
 if ! (cd backend && alembic upgrade head); then
     echo "ERROR: Database migrations failed!"
+    echo "Check your DATABASE_URL and ensure the database is running."
+    sleep 10 # Important: wait to ensure logs are captured by deployment tool
     exit 1
 fi
 echo "Database migrations completed successfully."
@@ -106,6 +124,7 @@ while [ $WAIT_COUNT -lt $MAX_WAIT ]; do
     fi
     if ! kill -0 $UVICORN_PID 2>/dev/null; then
         echo "ERROR: Uvicorn process exited"
+        sleep 5
         exit 1
     fi
     sleep 1
@@ -114,6 +133,7 @@ done
 
 if [ $WAIT_COUNT -eq $MAX_WAIT ]; then
     echo "ERROR: FastAPI did not start within ${MAX_WAIT}s"
+    sleep 5
     exit 1
 fi
 
@@ -125,3 +145,4 @@ NGINX_PID=$!
 wait -n $UVICORN_PID $NGINX_PID 2>/dev/null || wait $UVICORN_PID
 echo "A child process exited, shutting down..."
 cleanup
+
