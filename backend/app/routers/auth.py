@@ -101,7 +101,7 @@ async def _log_dev_mode_token(email: str, client, frontend_reset_url: str):
         reset_link = f"{frontend_reset_url}?token={token}"
         logger.info(f"Password reset token generated for {email}: {reset_link}")
         print(f"\n{'='*60}")
-        print("🔑 PASSWORD RESET TOKEN (Development Mode)")
+        print("PASSWORD RESET TOKEN (Development Mode)")
         print(f"{'='*60}")
         print(f"Email: {email}")
         print(f"Reset Link: {reset_link}")
@@ -135,7 +135,7 @@ async def api_forgot(data: ForgotIn):
         else:
             logger.warning("SendGrid not configured. Using basic password reset.")
             print(f"\n{'='*60}")
-            print("⚠️  SendGrid Email Not Configured")
+            print("[WARN] SendGrid Email Not Configured")
             print(f"{'='*60}")
             print("To enable email sending, add to your .env file:")
             print("  SENDGRID_API_KEY=your_sendgrid_api_key")
@@ -150,7 +150,7 @@ async def api_forgot(data: ForgotIn):
         }
     except Exception as exc:
         logger.error(f"Password reset error: {str(exc)}", exc_info=True)
-        print(f"❌ Password reset error: {str(exc)}")
+        print(f"[FAIL] Password reset error: {str(exc)}")
         return {
             "message": "If the email exists, a password reset link has been sent",
             "success": True

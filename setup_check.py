@@ -20,11 +20,11 @@ def check_python_version():
     
     version = sys.version_info
     if version.major < 3 or (version.major == 3 and version.minor < 11):
-        print(f"❌ Python 3.11+ required. Found: {version.major}.{version.minor}.{version.micro}")
+        print(f"[FAIL] Python 3.11+ required. Found: {version.major}.{version.minor}.{version.micro}")
         print("   Please upgrade Python to version 3.11 or later.")
         return False
     
-    print(f"✅ Python {version.major}.{version.minor}.{version.micro} (Compatible)")
+    print(f"[OK] Python {version.major}.{version.minor}.{version.micro} (Compatible)")
     return True
 
 def check_dependencies():
@@ -50,22 +50,22 @@ def check_dependencies():
         try:
             __import__(import_name)
             installed.append(package_name)
-            print(f"✅ {package_name:25s} - {description}")
+            print(f"[OK] {package_name:25s} - {description}")
         except ImportError:
             missing.append(package_name)
-            print(f"❌ {package_name:25s} - {description} (NOT INSTALLED)")
+            print(f"[FAIL] {package_name:25s} - {description} (NOT INSTALLED)")
     
     if missing:
-        print(f"\n⚠️  {len(missing)} package(s) missing:")
+        print(f"\n[WARN] {len(missing)} package(s) missing:")
         for pkg in missing:
             print(f"   - {pkg}")
-        print("\n💡 Install missing packages using:")
+        print("\nTip: Install missing packages using:")
         print("   pip install -r requirements.txt")
         print("   or")
         print("   uv sync")
         return False
     
-    print(f"\n✅ All {len(installed)} required packages are installed")
+    print(f"\n[OK] All {len(installed)} required packages are installed")
     return True
 
 def check_environment_variables():
@@ -77,10 +77,10 @@ def check_environment_variables():
     env_file = Path(".env")
     
     if env_file.exists():
-        print("📄 Found .env file")
+        print("Found .env file")
         load_dotenv()
     else:
-        print("⚠️  No .env file found (will check environment variables only)")
+        print("[WARN] No .env file found (will check environment variables only)")
     
     required = {
         "FIRECRAWL_API_KEY": "FireCrawl API key for web search",
@@ -96,22 +96,22 @@ def check_environment_variables():
             # Mask the key (show first 8 chars)
             masked = value[:8] + "..." if len(value) > 8 else value
             present.append(var)
-            print(f"✅ {var:25s} - {description} (Set: {masked})")
+            print(f"[OK] {var:25s} - {description} (Set: {masked})")
         else:
             missing.append(var)
-            print(f"❌ {var:25s} - {description} (NOT SET)")
+            print(f"[FAIL] {var:25s} - {description} (NOT SET)")
     
     if missing:
-        print(f"\n⚠️  {len(missing)} environment variable(s) missing:")
+        print(f"\n[WARN] {len(missing)} environment variable(s) missing:")
         for var in missing:
             print(f"   - {var}")
-        print("\n💡 Create a .env file in the project root with:")
+        print("\nTip: Create a .env file in the project root with:")
         print("   FIRECRAWL_API_KEY=your_firecrawl_api_key_here")
         print("   OPENROUTER_API_KEY=your_openrouter_api_key_here")
         print("\n   Or set them as environment variables.")
         return False
     
-    print(f"\n✅ All {len(present)} environment variables are set")
+    print(f"\n[OK] All {len(present)} environment variables are set")
     return True
 
 def check_directories():
@@ -128,16 +128,16 @@ def check_directories():
         dir_path = Path(dir_name)
         if dir_path.exists():
             if dir_path.is_dir():
-                print(f"✅ {dir_name:25s} - Directory exists")
+                print(f"[OK] {dir_name:25s} - Directory exists")
             else:
-                print(f"❌ {dir_name:25s} - Exists but is not a directory")
+                print(f"[FAIL] {dir_name:25s} - Exists but is not a directory")
                 all_ok = False
         else:
             try:
                 dir_path.mkdir(parents=True, exist_ok=True)
-                print(f"✅ {dir_name:25s} - Created")
+                print(f"[OK] {dir_name:25s} - Created")
             except Exception as e:
-                print(f"❌ {dir_name:25s} - Cannot create: {e}")
+                print(f"[FAIL] {dir_name:25s} - Cannot create: {e}")
                 all_ok = False
     
     return all_ok
@@ -156,14 +156,14 @@ def check_optional_dependencies():
         try:
             import_name = package.replace(".", "_")
             __import__(package.replace(".", "_"))
-            print(f"✅ {package:30s} - {description}")
+            print(f"[OK] {package:30s} - {description}")
         except ImportError:
-            print(f"⚪ {package:30s} - {description} (Optional, not installed)")
+            print(f"[--] {package:30s} - {description} (Optional, not installed)")
 
 def main():
     """Run all setup checks."""
     print("="*60)
-    print("🔍 FireCrawl Agent - Setup Verification")
+    print("FireCrawl Agent - Setup Verification")
     print("="*60)
     
     checks = [
@@ -179,14 +179,14 @@ def main():
             result = check_func()
             results.append((name, result))
         except Exception as e:
-            print(f"\n❌ Error during {name} check: {e}")
+            print(f"\n[FAIL] Error during {name} check: {e}")
             results.append((name, False))
     
     # Optional checks (don't affect pass/fail)
     try:
         check_optional_dependencies()
     except Exception as e:
-        print(f"\n⚠️  Error during optional dependency check: {e}")
+        print(f"\n[WARN] Error during optional dependency check: {e}")
     
     # Summary
     print_header("Summary")
@@ -194,18 +194,18 @@ def main():
     all_passed = all(result for _, result in results)
     
     for name, result in results:
-        status = "✅ PASS" if result else "❌ FAIL"
+        status = "[PASS]" if result else "[FAIL]"
         print(f"{status:10s} - {name}")
     
     if all_passed:
-        print("\n🎉 All critical checks passed! You're ready to run the application.")
-        print("\n💡 To start the application, run:")
+        print("\nAll critical checks passed! You're ready to run the application.")
+        print("\nTo start the application, run:")
         print("   python main.py")
         print("   or")
         print("   streamlit run app.py")
         return 0
     else:
-        print("\n⚠️  Some checks failed. Please fix the issues above before running.")
+        print("\n[WARN] Some checks failed. Please fix the issues above before running.")
         return 1
 
 if __name__ == "__main__":

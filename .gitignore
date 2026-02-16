@@ -33,3 +33,9 @@ Thumbs.db
 
 # Lock files (optional - uncomment if you don't want to track)
 # uv.lock
+
+# Logs and temp files
+*.log
+backend_*.txt
+frontend_*.txt
+crash_log.txt

@@ -3,6 +3,38 @@ import axios from 'axios';
 // Empty string = same origin (production behind nginx); undefined = dev default
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
 
+/** Base URL used for API requests (for display in health check messages). */
+export function getApiBaseUrl(): string {
+  return API_BASE_URL || window.location.origin;
+}
+
+/** Backend health check response (matches backend /api/health). */
+export interface BackendHealthResponse {
+  status: string;
+  sessions?: number;
+  environment?: Record<string, unknown>;
+}
+
+/** Check if the backend is responding. Use for connection status in the UI. */
+export async function checkBackendHealth(): Promise<{
+  ok: boolean;
+  data?: BackendHealthResponse;
+  error?: string;
+}> {
+  try {
+    const response = await api.get<BackendHealthResponse>('/api/health', {
+      timeout: 8000,
+    });
+    return { ok: response.status === 200, data: response.data };
+  } catch (err: unknown) {
+    const message =
+      err && typeof err === 'object' && 'message' in err
+        ? String((err as { message: unknown }).message)
+        : 'Network or server error';
+    return { ok: false, error: message };
+  }
+}
+
 // Auth Interfaces
 export interface User {
   id: string;
@@ -38,16 +70,35 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response Interceptor to handle 401s
+// Response Interceptor: attempt refresh on 401 before clearing session
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-      // Ideally implement refresh token logic here. 
-      // For now, we will clear storage and redirect to login if refresh fails or isn't implemented.
+
+      const refreshToken = localStorage.getItem('refresh_token');
+      if (refreshToken) {
+        try {
+          const res = await axios.post(
+            `${API_BASE_URL || ''}/api/auth/refresh`,
+            { refresh_token: refreshToken },
+            { headers: { 'Content-Type': 'application/json' } }
+          );
+          const { access_token, refresh_token: newRefresh } = res.data;
+          localStorage.setItem('access_token', access_token);
+          if (newRefresh) localStorage.setItem('refresh_token', newRefresh);
+          originalRequest.headers.Authorization = `Bearer ${access_token}`;
+          return api(originalRequest);
+        } catch {
+          // Refresh failed — fall through to logout
+        }
+      }
+
+      // No refresh token or refresh failed — clear session
       localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
       localStorage.removeItem('user');
       window.location.href = '/login';
     }

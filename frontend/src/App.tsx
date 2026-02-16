@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AuthLayout } from './components/AuthLayout';
+import { BackendStatus } from './components/BackendStatus';
 import DashboardLayout from './components/DashboardLayout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
@@ -13,7 +14,9 @@ import TermsPage from './pages/TermsPage';
 
 function App() {
   return (
-    <Routes>
+    <>
+      <BackendStatus />
+      <Routes>
       {/* Public Landing Page */}
       <Route path="/" element={<LandingPage />} />
       <Route path="/terms" element={<TermsPage />} />
@@ -51,6 +54,7 @@ function App() {
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   );
 }
 

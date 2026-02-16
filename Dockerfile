@@ -16,7 +16,7 @@ RUN npm run build
 # -----------------------------------------------------------------------------
 # Stage 2: Runtime (Python + nginx)
 # -----------------------------------------------------------------------------
-FROM python:3.12-slim AS runner
+FROM python:3.11-slim-bookworm AS runner
 WORKDIR /app
 
 # Install nginx + netcat for startup health-check only (minimal)
@@ -25,6 +25,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     netcat-openbsd \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
+
+# Create non-root user
+RUN groupadd --gid 1001 appgroup && \
+    useradd --uid 1001 --gid appgroup --shell /bin/sh --create-home appuser
 
 # Python deps: root (full app) then backend extras (asyncpg, psycopg2)
 COPY requirements.txt .
@@ -47,11 +51,21 @@ RUN nginx -t
 COPY start.sh /start.sh
 RUN chmod +x /start.sh
 
+# Allow non-root user to run nginx and write to required dirs
+RUN mkdir -p /var/lib/nginx/body /var/lib/nginx/proxy /var/lib/nginx/fastcgi \
+    /var/lib/nginx/uwsgi /var/lib/nginx/scgi /var/log/nginx /run && \
+    chown -R appuser:appgroup /app /var/lib/nginx /var/log/nginx /run /var/cache/nginx 2>/dev/null || true && \
+    # nginx needs to write its pid
+    touch /run/nginx.pid && chown appuser:appgroup /run/nginx.pid
+
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV BACKEND_PORT=8000
 
 EXPOSE 3000
+
+# Switch to non-root user
+USER appuser
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
     CMD nc -z 127.0.0.1 3000 || exit 1

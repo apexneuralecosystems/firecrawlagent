@@ -115,13 +115,13 @@ def main() -> int:
             body=f"Reset your password using: {reset_url}",
             html=html,
         )
-        print("✅ Email sent (or queued) via apex.email")
+        print("[OK] Email sent (or queued) via apex.email")
         print(f"To: {args.to}")
         print(f"From: {from_email}")
         return 0
     except Exception as exc:
         msg = str(exc)
-        print("❌ Email send failed:", msg)
+        print("[FAIL] Email send failed:", msg)
         if "CERTIFICATE_VERIFY_FAILED" in msg:
             print("\nFix (no code changes):")
             print("- Ensure your system trusts the outbound HTTPS chain (common on corporate VPN/proxy).")

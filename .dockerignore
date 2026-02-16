@@ -3,7 +3,11 @@
 .gitignore
 .env
 .env.*
-!.envexample
+!.env.example
+frontend/.env.local
+backend_*.txt
+frontend_*.txt
+*.log
 
 # Python
 venv

@@ -34,7 +34,8 @@ target_metadata = None
 from app.database import Base, SYNC_DATABASE_URL
 
 # Override the alembic.ini url with the one from the environment (handling async/sync)
-config.set_main_option("sqlalchemy.url", SYNC_DATABASE_URL)
+# Escape % for ConfigParser (e.g. %40 in passwords) to avoid interpolation errors
+config.set_main_option("sqlalchemy.url", SYNC_DATABASE_URL.replace("%", "%%"))
 
 from app.models.user import User
 from app.models.organization import Organization

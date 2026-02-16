@@ -1,0 +1,54 @@
+Traceback (most recent call last):
+  File "C:\Users\rahul\Documents\GitHub\firecrawlagent\debug_chroma.py", line 21, in <module>
+    import chromadb
+  File "C:\Users\rahul\AppData\Roaming\Python\Python314\site-packages\chromadb\__init__.py", line 3, in <module>
+    from chromadb.api.client import Client as ClientCreator
+  File "C:\Users\rahul\AppData\Roaming\Python\Python314\site-packages\chromadb\api\client.py", line 8, in <module>
+    from chromadb.api.shared_system_client import SharedSystemClient
+  File "C:\Users\rahul\AppData\Roaming\Python\Python314\site-packages\chromadb\api\shared_system_client.py", line 10, in <module>
+    class SharedSystemClient:
+    ...<82 lines>...
+            telemetry_client.capture(ClientStartEvent())
+  File "C:\Users\rahul\AppData\Roaming\Python\Python314\site-packages\chromadb\api\shared_system_client.py", line 16, in SharedSystemClient
+    settings: Settings = Settings(),
+                         ~~~~~~~~^^
+  File "C:\Users\rahul\AppData\Roaming\Python\Python314\site-packages\pydantic_settings\main.py", line 194, in __init__
+    super().__init__(
+    ~~~~~~~~~~~~~~~~^
+        **__pydantic_self__._settings_build_values(
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<27 lines>...
+        )
+        ^
+    )
+    ^
+  File "C:\Users\rahul\AppData\Roaming\Python\Python314\site-packages\pydantic\main.py", line 250, in __init__
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+pydantic_core._pydantic_core.ValidationError: 9 validation errors for Settings
+empty_str_to_none
+  Input should be a valid string [type=string_type, input_value=<bound method Settings.em...omadb.config.Settings'>>, input_type=method]
+    For further information visit https://errors.pydantic.dev/2.12/v/string_type
+firecrawl_api_key
+  Extra inputs are not permitted [type=extra_forbidden, input_value='fc-56c6d9246ee34907aa420a2f7789dd7c', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/extra_forbidden
+openrouter_api_key
+  Extra inputs are not permitted [type=extra_forbidden, input_value='sk-or-v1-bc393c618743113...d416c1cd2a9b687e6b24859', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/extra_forbidden
+send_grid_api
+  Extra inputs are not permitted [type=extra_forbidden, input_value='SG.ed1GOXS8RA-0GKw8wyui5...zczomUlAE3r6MhCmccr9tAA', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/extra_forbidden
+from_name
+  Extra inputs are not permitted [type=extra_forbidden, input_value='Firecrawl Agent', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/extra_forbidden
+new_us_sandbox_client_id
+  Extra inputs are not permitted [type=extra_forbidden, input_value='AbdeYPtmLDGndbL80Y0JMrv_...W8DuOaI3_mLogdR5SGYSGt5', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/extra_forbidden
+new_us_sandbox_secret
+  Extra inputs are not permitted [type=extra_forbidden, input_value='EDdzzNk7xPuiTJUgdmaxkn0q...aD9EEKn_KJ5AClQGc49Ic45', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/extra_forbidden
+paypal_mode
+  Extra inputs are not permitted [type=extra_forbidden, input_value='live', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/extra_forbidden
+database_url
+  Extra inputs are not permitted [type=extra_forbidden, input_value='postgresql://postgres:Ra...123@localhost:5432/fire', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/extra_forbidden

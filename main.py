@@ -25,10 +25,10 @@ def check_environment():
     missing = [key for key, value in required_vars.items() if not value]
     
     if missing:
-        print("❌ Missing required environment variables:")
+        print("[FAIL] Missing required environment variables:")
         for var in missing:
             print(f"   - {var}")
-        print("\n💡 Please create a .env file in the project root with:")
+        print("\nTip: Please create a .env file in the project root with:")
         for var in missing:
             print(f"   {var}=your_{var.lower()}_here")
         print("\nOr set them as environment variables.")
@@ -56,10 +56,10 @@ def check_dependencies():
             missing.append(package_name)
     
     if missing:
-        print("❌ Missing required Python packages:")
+        print("[FAIL] Missing required Python packages:")
         for pkg in missing:
             print(f"   - {pkg}")
-        print("\n💡 Please install dependencies using:")
+        print("\nTip: Please install dependencies using:")
         print("   pip install -r requirements.txt")
         print("   or")
         print("   uv sync")
@@ -72,8 +72,8 @@ def run_streamlit_app(port=8501, host="localhost"):
     import subprocess
     import sys
     
-    print(f"🚀 Starting FireCrawl Agent Application...")
-    print(f"📡 Server will be available at: http://{host}:{port}")
+    print("Starting FireCrawl Agent Application...")
+    print(f"Server will be available at: http://{host}:{port}")
     print("\n" + "="*60)
     print("Press Ctrl+C to stop the server")
     print("="*60 + "\n")
@@ -93,13 +93,13 @@ def run_streamlit_app(port=8501, host="localhost"):
         
         subprocess.run(cmd, check=True)
     except KeyboardInterrupt:
-        print("\n\n👋 Shutting down gracefully...")
+        print("\n\nShutting down gracefully...")
         sys.exit(0)
     except subprocess.CalledProcessError as e:
-        print(f"\n❌ Error running Streamlit: {e}")
+        print(f"\n[FAIL] Error running Streamlit: {e}")
         sys.exit(1)
     except FileNotFoundError:
-        print("\n❌ Streamlit not found. Please install it using:")
+        print("\n[FAIL] Streamlit not found. Please install it using:")
         print("   pip install streamlit")
         sys.exit(1)
 
@@ -147,32 +147,32 @@ Examples:
     
     # Print banner
     print("="*60)
-    print("🤖 FireCrawl Agent RAG Application")
+    print("FireCrawl Agent RAG Application")
     print("="*60)
     print()
     
     # Perform checks unless skipped
     if not args.skip_checks:
-        print("🔍 Checking setup...")
+        print("Checking setup...")
         print()
         
         # Check dependencies
-        print("📦 Checking dependencies...")
+        print("Checking dependencies...")
         if not check_dependencies():
             sys.exit(1)
-        print("✅ All dependencies are installed")
+        print("[OK] All dependencies are installed")
         print()
         
         # Check environment
-        print("🔑 Checking environment variables...")
+        print("Checking environment variables...")
         if not check_environment():
             sys.exit(1)
-        print("✅ All environment variables are set")
+        print("[OK] All environment variables are set")
         print()
     
     # If check-only mode, exit here
     if args.check_only:
-        print("✅ All checks passed! Ready to run.")
+        print("[OK] All checks passed! Ready to run.")
         sys.exit(0)
     
     # Run the application

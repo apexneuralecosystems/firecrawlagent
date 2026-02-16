@@ -30,6 +30,15 @@ if project_root not in sys.path:
 
 # Import necessary modules (chromadb/ChromaVectorStore imported lazily to avoid
 # opentelemetry version conflicts at startup; see process_document and delete_vector_collection_for_session)
+
+
+# ChromaDB + Pydantic 2.12 compat is applied at backend startup (app.chroma_pydantic_compat).
+# We call it again here before first chromadb import in case this module is loaded before main.
+def _ensure_chromadb_pydantic_compat():
+    from app.chroma_pydantic_compat import ensure_chromadb_pydantic_compat
+    ensure_chromadb_pydantic_compat()
+
+
 from llama_index.core import Settings, StorageContext, SimpleDirectoryReader
 from llama_index.core.node_parser import TokenTextSplitter
 from llama_index.embeddings.openai import OpenAIEmbedding
@@ -123,7 +132,7 @@ class WorkflowService:
         )
         
         display_name = model.replace("openrouter/", "") if model.startswith("openrouter/") else model
-        print(f"✅ LLM loaded: {display_name}")
+        print(f"[OK] LLM loaded: {display_name}")
         return llm
     
     @staticmethod
@@ -208,7 +217,7 @@ class WorkflowService:
         # Ensure pydantic_config is imported
         import pydantic_config  # noqa: F401
         
-        print("📚 Loading documents...")
+        print("Loading documents...")
         try:
             documents = SimpleDirectoryReader(file_path).load_data()
             print(f"DEBUG: Loaded {len(documents)} documents")
@@ -216,7 +225,10 @@ class WorkflowService:
             raise ValueError(f"Failed to load documents: {e}")
         
         settings = get_settings()
-        print("🗄️ Setting up vector store...")
+        print("Setting up vector store...")
+        # ChromaDB + Pydantic 2.12+: ensure BaseSettings is available to avoid
+        # "unable to infer type for attribute chroma_db_impl" (see chroma-core/chroma#5996)
+        _ensure_chromadb_pydantic_compat()
         # Lazy import to avoid chromadb/opentelemetry at server startup
         import chromadb
         from llama_index.vector_stores.chroma import ChromaVectorStore
@@ -226,7 +238,7 @@ class WorkflowService:
         vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
         print("DEBUG: Chroma vector store created")
         
-        print("⚙️ Initializing embedding model...")
+        print("Initializing embedding model...")
         try:
             embed_model = self._load_embedding_model("text-embedding-3-small")
             print("DEBUG: Embedding model loaded and cached")
@@ -239,7 +251,7 @@ class WorkflowService:
             else:
                 raise
         
-        print("🤖 Loading language model...")
+        print("Loading language model...")
         llm = self._load_llm()
         print("DEBUG: LLM loaded")
         
@@ -247,7 +259,7 @@ class WorkflowService:
         storage_context = StorageContext.from_defaults(vector_store=vector_store)
         print("DEBUG: Storage context created")
         
-        print("🔍 Creating document index...")
+        print("Creating document index...")
         try:
             self._safe_set_embed_model(embed_model)
             
@@ -274,12 +286,12 @@ class WorkflowService:
             print(f"DEBUG: All {len(nodes)} nodes embedded")
             
             # Store nodes in vector store
-            print("💾 Storing vectors in database...")
+            print("Storing vectors in database...")
             vector_store.add(nodes)
             print(f"DEBUG: Stored {len(nodes)} nodes in vector store")
             
             # Create custom index
-            print("🔗 Creating index wrapper...")
+            print("Creating index wrapper...")
             index = self._create_custom_index(
                 vector_store, storage_context, embed_model, nodes
             )
@@ -309,7 +321,7 @@ class WorkflowService:
         except Exception as workflow_error:
             error_str = str(workflow_error)
             if "BaseMessage" in error_str or "arbitrary_types_allowed" in error_str:
-                print("⚠️ BaseMessage validation error detected. Attempting to fix...")
+                print("Warning: BaseMessage validation error detected. Attempting to fix...")
                 try:
                     from pydantic import ConfigDict
                     if not hasattr(AgenticRAGWorkflow, 'model_config') or \
@@ -331,14 +343,14 @@ class WorkflowService:
                         timeout=249,
                         llm=llm
                     )
-                    print("✅ Fixed BaseMessage validation error!")
+                    print("[OK] Fixed BaseMessage validation error!")
                     print("DEBUG: Workflow created successfully after retry")
                 except Exception as fix_error:
                     raise workflow_error from fix_error
             else:
                 raise
         
-        print("✅ Document processing complete!")
+        print("[OK] Document processing complete!")
         return workflow, collection_name
     
     async def run_query(self, workflow, query: str) -> Tuple[any, str]:

@@ -29,7 +29,7 @@ async def startup_event():
         result = bootstrap()
         if hasattr(result, '__await__'):  # It's a coroutine
             await result
-            print("✓ Database tables created successfully on startup")
+            print("[OK] Database tables created successfully on startup")
         # If not a coroutine, it already ran synchronously
     except Exception as e:
         print(f"Warning: Database bootstrap failed: {e}")

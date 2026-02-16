@@ -24,10 +24,13 @@ def init_apex():
     global _apex_client
     settings = get_settings()
     # Use Postgres from ENV; Apex requires an async driver (asyncpg)
-    database_url = os.getenv("DATABASE_URL", "postgresql+asyncpg://devulapellykushalkumarreddy@localhost/firecrawlagent")
+    database_url = os.getenv("DATABASE_URL")
+    if not database_url:
+        raise RuntimeError("DATABASE_URL environment variable is required but not set.")
     database_url = _ensure_async_pg_url(database_url)
 
-    print(f"🔌 Apex Client connecting to: {database_url}")
+    # Avoid emoji on Windows (cp1252) to prevent UnicodeEncodeError
+    print("Apex Client connecting to database.")
 
     secret_key = os.getenv("SECRET_KEY", "default-dev-secret-key")
     if settings.is_production and secret_key == "default-dev-secret-key":

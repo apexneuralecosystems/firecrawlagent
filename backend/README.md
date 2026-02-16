@@ -94,6 +94,8 @@ The FireCrawl Agent Backend is a FastAPI-based REST API that powers the FireCraw
 
 ## ⚡ Quick Start
 
+**Rule:** After any change to `requirements.txt` or backend code, restart all processes (backend and frontend). Use `.\scripts\restart-all.ps1` from the project root, or stop and start them manually.
+
 ```bash
 # 1. Navigate to backend directory
 cd backend
@@ -115,6 +117,27 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 The API will be available at `http://localhost:8000`
+
+### Restart after changes (requirements or backend code)
+
+**Whenever you change backend code or `requirements.txt`, restart all processes** so the backend and frontend pick up the changes.
+
+From the project root:
+
+```powershell
+# Windows: stop backend + frontend, then start both (opens 2 windows)
+.\scripts\restart-all.ps1
+```
+
+With dependency install (after editing `backend/requirements.txt`):
+
+```powershell
+.\scripts\restart-all.ps1 -InstallBackendDeps
+```
+
+Or manually: stop any process on port 8000 (backend) and 3000 (frontend), then start backend and frontend again.
+
+See [COMPAT_PATCHES.md](COMPAT_PATCHES.md) for details on startup compatibility patches (Windows encoding, ChromaDB/Pydantic, NumPy 2.0, Alembic).
 
 ---
 

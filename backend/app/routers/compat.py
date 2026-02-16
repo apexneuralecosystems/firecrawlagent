@@ -127,7 +127,7 @@ async def forgot_password_endpoint(request: ForgotPasswordRequest):
                     reset_link = f"{frontend_reset_url}?token={token}"
                     logger.info("Generated password reset token for %s (dev mode): %s", request.email, reset_link)
                     print("\n" + "=" * 60)
-                    print("⚠️  SENDGRID_API_KEY not configured, using dev-mode reset link")
+                    print("[WARN] SENDGRID_API_KEY not configured, using dev-mode reset link")
                     print(f"Email: {request.email}")
                     print(f"Reset Link: {reset_link}")
                     print(f"Token: {token}")

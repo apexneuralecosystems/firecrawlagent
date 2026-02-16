@@ -2,6 +2,7 @@
 Payment router - PayPal integration.
 """
 import os
+import traceback
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from app.deps.auth import get_current_user
@@ -41,7 +42,6 @@ class CaptureOrderRequest(BaseModel):
 @router.post("/create-order")
 async def create_order_endpoint(request: CreateOrderRequest, user=Depends(get_current_user)):
     """Create PayPal order endpoint."""
-    import traceback
     try:
         client = get_apex_client()
 

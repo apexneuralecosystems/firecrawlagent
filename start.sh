@@ -1,6 +1,35 @@
 #!/bin/sh
 set -e
 
+# ---------------------------------------------------------------------------
+# Signal handling: forward SIGTERM/SIGINT to uvicorn so it shuts down
+# gracefully (flushes DB connections, finishes in-flight requests).
+# ---------------------------------------------------------------------------
+UVICORN_PID=""
+
+cleanup() {
+    echo "=== Caught shutdown signal ==="
+    if [ -n "$UVICORN_PID" ] && kill -0 "$UVICORN_PID" 2>/dev/null; then
+        echo "Sending SIGTERM to uvicorn (PID $UVICORN_PID)..."
+        kill -TERM "$UVICORN_PID" 2>/dev/null || true
+        # Wait up to 30s for graceful shutdown
+        GRACE=30
+        while [ $GRACE -gt 0 ] && kill -0 "$UVICORN_PID" 2>/dev/null; do
+            sleep 1
+            GRACE=$((GRACE - 1))
+        done
+        if kill -0 "$UVICORN_PID" 2>/dev/null; then
+            echo "Uvicorn did not stop in time, sending SIGKILL"
+            kill -9 "$UVICORN_PID" 2>/dev/null || true
+        fi
+    fi
+    echo "=== Stopping Nginx ==="
+    nginx -s quit 2>/dev/null || true
+    exit 0
+}
+
+trap cleanup TERM INT QUIT
+
 # Ports: public 3000 (nginx), backend 8000 (FastAPI) – keep different to avoid confusion
 BACKEND_PORT=${BACKEND_PORT:-8000}
 PUBLIC_PORT=${PORT:-3000}
@@ -24,7 +53,12 @@ if [ ! -d "frontend/dist" ]; then
 fi
 
 echo "Starting FastAPI on port ${BACKEND_PORT}..."
-uvicorn backend.main:app --host 0.0.0.0 --port "${BACKEND_PORT}" &
+uvicorn backend.main:app \
+    --host 0.0.0.0 \
+    --port "${BACKEND_PORT}" \
+    --loop asyncio \
+    --timeout-keep-alive 65 \
+    --log-level info &
 UVICORN_PID=$!
 echo "Uvicorn PID: $UVICORN_PID"
 
@@ -53,4 +87,10 @@ if [ $WAIT_COUNT -eq $MAX_WAIT ]; then
 fi
 
 echo "Starting Nginx on port ${PUBLIC_PORT}..."
-exec nginx -g 'daemon off;'
+nginx -g 'daemon off;' &
+NGINX_PID=$!
+
+# Wait for either process to exit
+wait -n $UVICORN_PID $NGINX_PID 2>/dev/null || wait $UVICORN_PID
+echo "A child process exited, shutting down..."
+cleanup

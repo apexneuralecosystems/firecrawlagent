@@ -349,7 +349,7 @@ def load_llm():
         )
         # Extract model name for display (remove openrouter/ prefix)
         display_name = model.replace("openrouter/", "") if model.startswith("openrouter/") else model
-        print(f"✅ LLM loaded: {display_name}")
+        print(f"[OK] LLM loaded: {display_name}")
         return llm
     except Exception as e:
         st.error(f"Failed to load LLM: {e}")

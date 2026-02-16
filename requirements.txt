@@ -340,7 +340,7 @@ nltk==3.9.1
     #   llama-index
     #   llama-index-core
     #   newspaper3k
-numpy==2.3.2
+numpy==1.26.4
     # via
     #   fastembed
     #   llama-index-core

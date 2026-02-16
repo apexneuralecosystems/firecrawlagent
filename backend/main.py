@@ -3,18 +3,109 @@ FastAPI Backend for FireCrawl Agent RAG Application
 """
 # Disable ChromaDB telemetry before any chromadb import (avoids opentelemetry version conflicts)
 import os
+import sys
+# Create import path for 'app' package (backend/app)
+sys.path.insert(0, os.path.dirname(__file__))
+
 os.environ.setdefault("ANONYMIZED_TELEMETRY", "false")
 
-from fastapi import FastAPI, UploadFile, File, HTTPException
+
+def _ensure_stdout_stderr_utf8():
+    """On Windows, wrap stdout/stderr so Unicode (e.g. emoji) doesn't cause charmap errors."""
+    if sys.platform != "win32":
+        return
+    import io
+    for name in ("stdout", "stderr"):
+        stream = getattr(sys, name)
+        enc = getattr(stream, "encoding", "").lower()
+        if enc in ("cp1252", "cp850", "ascii", "") and getattr(stream, "buffer", None) is not None:
+            try:
+                wrapper = io.TextIOWrapper(
+                    stream.buffer,
+                    encoding="utf-8",
+                    errors="replace",
+                    line_buffering=getattr(stream, "line_buffering", False),
+                )
+                setattr(sys, name, wrapper)
+            except Exception:
+                pass
+
+
+_ensure_stdout_stderr_utf8()
+
+# --- CRITICAL PATCH: Python 3.14 + Pydantic v1 Compatibility ---
+# Must run before ANY other imports (fastapi, pydantic, etc.) that might trigger chromadb
+def ensure_chromadb_pydantic_compat():
+    try:
+        from typing import Any
+        try:
+            from pydantic.v1 import fields, errors
+        except ImportError:
+            return
+
+        if getattr(fields.ModelField, '_patch_applied', False):
+            return
+
+        _orig_set_default = fields.ModelField._set_default_and_type
+        print(f"DEBUG: Patching ModelField._set_default_and_type for Py3.14 compat")
+
+        def _patched_set_default_and_type(self):
+            try:
+                _orig_set_default(self)
+            except errors.ConfigError as e:
+                # Fallback to Any if type inference fails (Python 3.14)
+                self.type_ = Any
+                self.outer_type_ = Any
+                self.annotation = Any
+                # Also ensure allow_none logic is preserved if possible
+                if getattr(self, 'required', True) is False:
+                    self.allow_none = True
+                return
+
+        fields.ModelField._set_default_and_type = _patched_set_default_and_type
+        fields.ModelField._patch_applied = True
+        print("DEBUG: ModelField._set_default_and_type patch APPLIED.")
+    except (ImportError, AttributeError):
+        pass
+
+# Apply patch immediately
+ensure_chromadb_pydantic_compat()
+
+# --- CRITICAL PATCH: NumPy 1.24+ Compatibility for ChromaDB 0.4.x ---
+# ChromaDB 0.4.24 uses np.float_, deprecated in 1.20, removed in 1.24.
+def ensure_numpy_compatibility():
+    try:
+        import numpy as np
+        if not hasattr(np, 'float_'):
+            np.float_ = np.float64
+            print("DEBUG: Patched numpy.float_ = numpy.float64 for ChromaDB compatibility")
+    except ImportError:
+        pass
+
+ensure_numpy_compatibility()
+# --------------------------------------------------------------------
+
+import logging
+import logging.config
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, Request, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr
-import sys
+from starlette.middleware.base import BaseHTTPMiddleware
 import tempfile
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Optional
 from dotenv import load_dotenv
+
+
+# ChromaDB + Pydantic 2.12 compat: patch pydantic.BaseSettings before any chromadb import
+# CRITICAL: This MUST run before any `from app.*` imports that transitively import chromadb
+from app.chroma_pydantic_compat import ensure_chromadb_pydantic_compat
+ensure_chromadb_pydantic_compat()
+
 from app.apex_client import init_apex_async, get_apex_client
 from app.config import get_settings, validate_production_env
 from app.routers.auth import router as auth_router
@@ -38,7 +129,7 @@ def _ensure_ssl_cert_file() -> None:
         import certifi  # type: ignore
 
         os.environ["SSL_CERT_FILE"] = certifi.where()
-        print("🔒 Set SSL_CERT_FILE from certifi bundle for outbound HTTPS.")
+        print("Set SSL_CERT_FILE from certifi bundle for outbound HTTPS.")
     except Exception:
         # If certifi isn't installed, do nothing.
         return
@@ -59,6 +150,42 @@ if project_root not in sys.path:
 # Load .env from project root (where .env file is located)
 env_path = os.path.join(project_root, '.env')
 load_dotenv(dotenv_path=env_path, override=True)
+
+# (Compat patch already applied above, before app imports)
+
+
+def _ensure_numpy_2_compat():
+    """NumPy 2.0 removed several type aliases; restore them for deps (ChromaDB, hnswlib, etc.)."""
+    try:
+        import numpy as np
+        # Restore removed aliases (NumPy 2.0 migration guide)
+        def _set_if_missing(name, value):
+            if not hasattr(np, name):
+                try:
+                    setattr(np, name, value)
+                except Exception:
+                    pass
+        _set_if_missing("float_", np.float64)
+        _set_if_missing("int_", np.int64)
+        _set_if_missing("complex_", np.complex128)
+        _set_if_missing("string_", np.bytes_)
+        _set_if_missing("longfloat", np.longdouble)
+        _set_if_missing("cfloat", np.complex128)
+        _set_if_missing("clongfloat", np.clongdouble)
+        _set_if_missing("singlecomplex", np.complex64)
+        _set_if_missing("longcomplex", np.clongdouble)
+        _str_type = getattr(np, "str_", None) or np.dtype("U").type
+        _set_if_missing("unicode_", _str_type)
+        _set_if_missing("str_", _str_type)
+        if not hasattr(np, "bool_"):
+            _set_if_missing("bool_", np.dtype("bool").type)
+        if not hasattr(np, "object_"):
+            _set_if_missing("object_", np.dtype("O").type)
+    except Exception:
+        pass
+
+
+_ensure_numpy_2_compat()
 
 # Prevent root app.py from being accidentally imported
 # This must happen after load_dotenv but before any imports that might trigger app.py
@@ -105,17 +232,62 @@ except (ImportError, ModuleNotFoundError) as e:
 # Disable uvloop before uvicorn starts
 os.environ["UVICORN_USE_UVLOOP"] = "0"
 
-app = FastAPI(
-    title="FireCrawl Agent API",
-    version="1.0.0",
-    description="REST API for FireCrawl Agent RAG Application"
+# ---------------------------------------------------------------------------
+# Logging Configuration
+# ---------------------------------------------------------------------------
+_log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+logging.basicConfig(
+    level=getattr(logging, _log_level, logging.INFO),
+    format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+    datefmt="%Y-%m-%dT%H:%M:%S",
 )
-@app.on_event("startup")
-async def startup():
+logger = logging.getLogger("firecrawl")
+
+# ---------------------------------------------------------------------------
+# Request ID Middleware
+# ---------------------------------------------------------------------------
+class RequestIDMiddleware(BaseHTTPMiddleware):
+    """Attach a unique X-Request-ID to every request/response for tracing."""
+    async def dispatch(self, request: Request, call_next):
+        request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
+        request.state.request_id = request_id
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = request_id
+        return response
+
+# ---------------------------------------------------------------------------
+# Lifespan (replaces deprecated @app.on_event)
+# ---------------------------------------------------------------------------
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # --- Startup ---
     settings = get_settings()
     validate_production_env(settings)
     _ensure_ssl_cert_file()
     await init_apex_async()
+    logger.info("FastAPI startup complete (env=%s)", settings.env)
+    yield
+    # --- Shutdown ---
+    logger.info("FastAPI shutting down gracefully…")
+
+app = FastAPI(
+    title="FireCrawl Agent API",
+    version="1.0.0",
+    description="REST API for FireCrawl Agent RAG Application",
+    lifespan=lifespan,
+)
+
+# ---------------------------------------------------------------------------
+# Global JSON Exception Handler (never return HTML 500s)
+# ---------------------------------------------------------------------------
+@app.exception_handler(Exception)
+async def _global_exception_handler(request: Request, exc: Exception):
+    req_id = getattr(request.state, "request_id", "unknown")
+    logger.error("Unhandled exception [%s]: %s", req_id, exc, exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error", "request_id": req_id},
+    )
 
 # CORS middleware
 settings = get_settings()
@@ -127,6 +299,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Request ID middleware (added after CORS so it runs on every request)
+app.add_middleware(RequestIDMiddleware)
 
 # In-memory session storage.
 # NOTE: This is not horizontally scalable. In production, run a SINGLE worker/replica unless you
@@ -151,9 +326,10 @@ async def root():
 
 @app.get("/api/health")
 async def health_check():
-    """Detailed health check."""
+    """Detailed health/readiness check."""
     return {
         "status": "healthy",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "sessions": len(sessions),
         "environment": {
             "has_firecrawl_key": bool(os.getenv("FIRECRAWL_API_KEY")),
@@ -286,7 +462,7 @@ async def delete_session(session_id: str):
         try:
             WorkflowService.delete_vector_collection_for_session(session_id)
         except Exception as e:
-            print(f"Warning: vector collection cleanup failed for {session_id}: {e}")
+            logger.warning("Vector collection cleanup failed for %s: %s", session_id, e)
         del sessions[session_id]
         return {"status": "deleted", "session_id": session_id}
     return {"status": "not_found", "session_id": session_id}
@@ -421,7 +597,7 @@ You're receiving this email because you subscribed to our newsletter.
             }
             
     except Exception as e:
-        print(f"Newsletter subscription error: {str(e)}")
+        logger.error("Newsletter subscription error: %s", e, exc_info=True)
         return {
             "success": False,
             "message": "An error occurred. Please try again later."

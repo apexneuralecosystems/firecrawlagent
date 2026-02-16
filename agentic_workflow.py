@@ -350,18 +350,61 @@ class OrchestratorAgent(Agent):
                 context["nodes"] = retrieval_result.get("result", [])
                 print(f"DEBUG: Retrieved {len(context.get('nodes', []))} nodes")
             
-            # Step 2: Relevance Evaluation (SKIP for now to avoid timeout)
-            print("DEBUG: Step 2 - Skipping relevance evaluation")
+            # Step 2: Relevance Evaluation
+            print("DEBUG: Step 2 - Relevance evaluation")
+            relevance_agent = self.agents.get("relevance")
             needs_web_search = False
+            relevant_nodes = []
             
-            # Get text from retrieved nodes
-            if context.get("nodes"):
-                context["relevant_text"] = "\n".join([node.text for node in context["nodes"][:3]])  # Limit to top 3
+            if relevance_agent and context.get("nodes"):
+                try:
+                    relevance_result = await relevance_agent.execute(task, context)
+                    relevant_nodes = relevance_result.get("result", [])
+                    context["relevant_nodes"] = relevant_nodes
+                    print(f"DEBUG: Found {len(relevant_nodes)} relevant nodes")
+                    
+                    if not relevant_nodes:
+                        print("DEBUG: No relevant nodes found, enabling web search")
+                        needs_web_search = True
+                except Exception as e:
+                    print(f"Warning: Relevance evaluation failed: {e}")
+                    # Fallback: assume all retrieved nodes are relevant if check fails
+                    relevant_nodes = context.get("nodes", [])
+                    needs_web_search = True # Be safe and search if check failed
             else:
-                context["relevant_text"] = "No relevant documents found."
+                print("DEBUG: No relevance agent or nodes, enabling web search")
+                needs_web_search = True
+                relevant_nodes = context.get("nodes", [])
+
+            # Explicitly force web search if query mentions 'internet', 'web', 'online'
+            if "internet" in task.lower() or "web" in task.lower() or "online" in task.lower():
+                print("DEBUG: Query requests internet search, enabling web search")
+                needs_web_search = True
             
-            # Step 3: Web Search (SKIP - likely causing timeout)
-            print("DEBUG: Step 3 - Skipping web search")
+            # Step 3: Web Search
+            if needs_web_search:
+                print("DEBUG: Step 3 - Web Search")
+                web_search_agent = self.agents.get("web_search")
+                if web_search_agent:
+                    try:
+                        search_result = await web_search_agent.execute(task, context)
+                        context["search_text"] = search_result.get("result", "")
+                        print(f"DEBUG: Web search returned {len(context.get('search_text', ''))} chars")
+                    except Exception as e:
+                        print(f"Warning: Web search failed: {e}")
+                        context["search_text"] = ""
+                else:
+                    print("DEBUG: No web search agent available")
+                    context["search_text"] = ""
+            else:
+                print("DEBUG: Step 3 - Skipping web search (not needed)")
+                context["search_text"] = ""
+
+            # Update relevant text for answer generation
+            if relevant_nodes:
+                context["relevant_text"] = "\n".join([node.text for node in relevant_nodes])
+            elif not context.get("relevant_text"):
+                 context["relevant_text"] = ""
             
             # Step 4: Generate Answer
             print("DEBUG: Step 4 - Generating answer")
