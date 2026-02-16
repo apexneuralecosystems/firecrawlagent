@@ -6,5 +6,4 @@ pydantic-settings>=2.0.0
 asyncpg
 psycopg2-binary
 onnxruntime>=1.16.0
-
-
+apex-saas-framework==0.3.24
