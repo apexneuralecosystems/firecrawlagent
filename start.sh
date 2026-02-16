@@ -101,14 +101,18 @@ if [ ! -d "backend" ] || [ ! -f "backend/main.py" ]; then
     exit 1
 fi
 
-if [ ! -d "frontend/dist" ]; then
-    echo "ERROR: frontend/dist not found (Vite build missing)"
-    ls -la frontend/ 2>/dev/null || true
-    sleep 10
+if [ ! -f "frontend/dist/index.html" ]; then
+    echo "ERROR: frontend/dist/index.html not found (Vite build missing or failed)"
+    ls -la frontend/dist 2>/dev/null || true
+    sleep 30
     exit 1
 fi
 
+echo "Testing Nginx configuration..."
+nginx -t
+
 echo "Running database migrations..."
+
 if ! command -v alembic >/dev/null 2>&1; then
     echo "ERROR: 'alembic' command not found. Ensure it is in requirements.txt"
     sleep 30
